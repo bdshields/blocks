@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <title>blocks - scoreboard</title>
+    <style>
+    .sb_title {
+        font-size: 5vw;
+        text-align: center;
+    }
+    table {
+        width: 60%;
+        border-collapse: collapse;
+    }
+    th {
+        font-weight: bold;
+    }
+    th, td {
+        padding: 15px;
+        font-size: 2vw;
+    }
+    table, th, td{
+        text-align: center;
+        border: 1px solid black;
+    }
+    
+    </style>
+  </head>
+  <body onload="runInit()">
+    <div id="title" class="sb_title"></div>
+    <table id="scoreboard" align="center">
+    </table>
+  </body>
+  <script>
+  var update_timer=-1;
+  function runInit(){
+       update_timer = setInterval(updateScore, 1000);
+  }
+  function updateScore(){
+      fetch("/score")
+            .then(function(response){
+                return response.json();
+            })
+            .then(function(data){
+                clearScoreboard();
+                drawScoreboard(data);
+            })
+            .catch(function(){
+            });
+  }
+  function clearScoreboard(){
+        var scoreboard = document.getElementById("scoreboard");
+        if(scoreboard.tHead != null)
+        {
+            scoreboard.deleteTHead();
+        }
+        while(scoreboard.rows.length > 0)
+        {
+            scoreboard.deleteRow();
+        }
+  }
+  function drawScoreboard(data){
+        var tableTitle = document.getElementById("title");
+        tableTitle.innerHTML = data.type.charAt(0).toUpperCase() + data.type.slice(1);
+        var scoreboard = document.getElementById("scoreboard");
+        if(data.type == "scoreboard")
+        {
+            var counter;
+            var header = scoreboard.createTHead();
+            var row = header.insertRow(0);
+            row.insertCell(0);
+            row.insertCell(1);
+            row.cells[0].innerHTML = "Player";
+            row.cells[1].innerHTML = "Score";
+            for(counter=0; counter < data.data.length; counter++)
+            {
+                row = scoreboard.insertRow();
+                row.insertCell(0);
+                row.insertCell(1);
+                row.cells[0].innerHTML = data.data[counter].player;
+                row.cells[1].innerHTML = data.data[counter].score;
+            }
+        }
+  }
+  </script>
+</html>
