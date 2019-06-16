@@ -54,7 +54,7 @@ void pong_run(uint16_t x, uint16_t y)
     pong_state_t    state=ps_init_game;
     user_input_t    button;
 
-    score_init("Pong",2);
+    score_init("Pong",2, "Player 1", "Player 2");
     game_area = fb_allocate(x, y);
 
     while(1)

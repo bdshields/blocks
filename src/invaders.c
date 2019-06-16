@@ -70,7 +70,7 @@ void invaders_run(uint16_t x, uint16_t y)
     uint16_t    total_aliens;
     enum invader_state game_state = is_init_game;
 
-    score_init("Invaders", 1);
+    score_init("Invaders", 1,"Player 1","Player 2");
     game_area = fb_allocate(x, y);
     aliens = fb_allocate(x-ALIEN_SWING, y - invader_cannon.y_max - CANNON_HEADROOM - ALIEN_HEADROOM - ALIEN_FOOTER);
     while(1)

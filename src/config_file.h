@@ -9,12 +9,16 @@
 #define SRC_CONFIG_FILE_H_
 
 #include <stdint.h>
+#include <stdarg.h>
 
 #define FILE_NAME ".blocks"
 
 void config_init(char *file_name);
 void config_save(void);
 void config_close(void);
+
+char *_k(char *format, ...);
+
 
 uint16_t config_get_string(char *key, char *value);
 uint16_t config_get_int(char *key, int32_t *value);

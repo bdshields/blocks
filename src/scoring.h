@@ -9,26 +9,40 @@
 #define SRC_SCORING_H_
 
 #include <stdint.h>
+#include <stdarg.h>
 
 #define NAME_LEN    30
 
-#define NUM_SCORE   4
+#define SCORE_MAXTEAMS 4
+#define SCORE_HIST  10   // Number of high scores to retain per game
 
-typedef struct score_s{
+
+typedef struct scoreGame_s{
     const char    *game;
-    char     name[NAME_LEN];
-    int32_t  score;
-}score_t;
+    uint8_t        num_teams;
+    char          *teamNames;
+    int32_t        teamScore[0];
+}scoreGame_t;
 
-void score_init(const char *title, uint16_t num_players);
+void score_init(const char *title, uint16_t numTeams, ...);
 void score_set(uint16_t player, int32_t new_score);
 void score_adjust(uint16_t player, int32_t score_adjustment);
 void score_save(void);
 
 /**
- * Retrieve score for a player
+ * Retrieve score details of current game
  */
-score_t score_player(uint16_t player);
+uint16_t score_getNumTeams(void);
+int32_t score_getScore(uint16_t team);
+char *score_getTeam(uint16_t team);
+char *score_getGame(void);
+
+
+/**
+ * Retrieve historic game result
+ */
+//uint16_t score_getNumTeams(void);
+
 
 
 

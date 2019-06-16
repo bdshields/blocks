@@ -26,6 +26,7 @@
 #include "sprites.h"
 #include "frame_drv.h"
 #include "utils.h"
+#include "config_file.h"
 
 #include "tetris.h"
 #include "invaders.h"
@@ -84,6 +85,9 @@ int main(int argc, char *argv[])
     uint16_t    update_scr=0;
 
     srand(0);
+
+    config_init(NULL);
+
     in_init();
     http_init();
 
@@ -205,7 +209,7 @@ void clear_down()
     in_close();
     http_shutdown();
     frame_sleep(100);
-
+    config_close();
 }
 
 void parseargs(int argc, char **argv)

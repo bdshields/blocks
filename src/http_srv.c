@@ -211,24 +211,19 @@ int http_proc(int fd)
                 char        buffer[HTTP_RESP_SIZE];
                 uint16_t    pos;
                 uint16_t    player;
-                score_t     score;
                 pos = 0;
                 player = 0;
                 pos += sprintf(buffer+pos,"{ \"type\":\"scoreboard\", \"data\": [");
-                // print first entry
-                score = score_player(player);
-                player++;
-                if(score.game != NULL)
+                if(score_getNumTeams() > 0)
                 {
-                    pos += sprintf(buffer+pos,"{ \"game\": \"%s\", \"player\": \"%s\", \"score\": %d }\n", score.game, score.name, score.score);
-                    do{
-                        score = score_player(player);
+                    // print first entry
+                    pos += sprintf(buffer+pos,"{ \"game\": \"%s\", \"player\": \"%s\", \"score\": %d }\n", score_getGame(), score_getTeam(player), score_getScore(player));
+                    player++;
+                    while(player < score_getNumTeams())
+                    {
+                        pos += sprintf(buffer+pos,",{ \"game\": \"%s\", \"player\": \"%s\", \"score\": %d }\n", score_getGame(), score_getTeam(player), score_getScore(player));
                         player++;
-                        if(score.game != NULL)
-                        {
-                            pos += sprintf(buffer+pos,",{ \"game\": \"%s\", \"player\": \"%s\", \"score\": %d }\n", score.game, score.name, score.score);
-                        }
-                    }while(score.game != NULL);
+                    }
                 }
                 pos += sprintf(buffer+pos,"]}");
                 http_respond(fd,200,buffer);
@@ -239,7 +234,6 @@ int http_proc(int fd)
             if(strcmp("/player", path) == 0)
             {
                 player_status_t status={0};
-                score_t     score;
                 char *form;
                 // skip header
                 form = http_parse_header();
@@ -252,8 +246,7 @@ int http_proc(int fd)
                     {
                         char response[200];
                         in_push((user_input_t){session->player-1,status.buttons} );
-                        score = score_player(session->player-1);
-                        snprintf(response, 200,"{\"player\": \"%d\", \"score\": %d}",session->player, score.score);
+                        snprintf(response, 200,"{\"player\": \"%d\", \"score\": %d}",session->player, score_getScore(session->player-1));
                         http_respond(fd,200,response);
                     }
                     else

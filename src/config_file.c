@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 char config_filename[500];
 char *config_buffer=NULL;
@@ -55,7 +56,10 @@ void config_close(void)
     config_buffer = NULL;
 }
 
-
+/**
+ * Returns a pointer to line beginning with 'key'
+ *
+ */
 char *config_get_line(char *key, char **end)
 {
     char     *str;
@@ -103,6 +107,16 @@ char *config_get_line(char *key, char **end)
     return NULL;
 }
 
+
+char *_k(char *format, ...)
+{
+    static char _k_buf[500];
+    va_list    args;
+    va_start (args, format);
+    vsnprintf(_k_buf,500,format,args);
+    return _k_buf;
+}
+
 uint16_t config_get_string(char *key, char *value)
 {
     char     *str;
@@ -115,6 +129,10 @@ uint16_t config_get_string(char *key, char *value)
     str = config_get_line(key, &end_ptr);
     if(str != NULL)
     {
+        if(*(end_ptr - 1) == '\n')
+        {
+            end_ptr--;
+        }
         value_len = end_ptr - str - key_len - 1;
         memcpy(value, str + key_len + 1, value_len);
         value[value_len] = '\0';
@@ -142,6 +160,7 @@ uint16_t config_get_int(char *key, int32_t *value)
     }
     return result;
 }
+
 
 
 void config_put_string(char *key, char *value)

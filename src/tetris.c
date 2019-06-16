@@ -85,7 +85,7 @@ void tetris_run(uint16_t x, uint16_t y)
 
     uint16_t game_state = ts_init_game;
 
-    score_init("Tetris", 1);
+    score_init("Tetris", 1, "Player 1");
 
     dropped_blocks = fb_allocate(x, y);
     game_area = fb_allocate(x, y);
