@@ -18,7 +18,7 @@ scoreGame_t *scoreCurrent=NULL;
 
 scoreGame_t *score_Vallocate(const char *title, uint16_t numTeams, va_list va_names);
 scoreGame_t *score_allocate(const char *title, uint16_t numTeams, ...);
-char *score_getTeam_adv(scoreGame_t* score, uint16_t team);
+char *score_getTeam(scoreGame_t* score, uint16_t team);
 
 
 void score_init(const char *title, uint16_t numTeams, ...)
@@ -237,8 +237,9 @@ void score_save(void)
                 config_put_int(_k("%s_score%dteamNum",scoreCurrent->game,indexMatch+1),numTeams);
                 for(indexTeam=0; indexTeam<numTeams; indexTeam++)
                 {
+
                     config_put_string(_k("%s_score%dteam%d",scoreCurrent->game,indexMatch+1,indexTeam+1),
-                            score_getTeam_adv(topScores[indexMatch], indexTeam));
+                            score_getTeam(topScores[indexMatch], indexTeam));
                     config_put_int(_k("%s_score%dresult%d",scoreCurrent->game,indexMatch+1,indexTeam+1),
                             topScores[indexMatch]->teamScore[indexTeam]);
                 }
@@ -269,37 +270,38 @@ uint16_t score_getNumTeams(void)
  *  @param team Team to return 0...
  *
  */
-int32_t score_getScore(uint16_t team)
+int32_t score_getScore(uint16_t team, char **TeamName)
 {
     if(scoreCurrent)
     {
         if(team < scoreCurrent->num_teams)
         {
+            if(TeamName != NULL)
+            {
+                *TeamName = score_getTeam(scoreCurrent, team);
+            }
             return scoreCurrent->teamScore[team];
         }
     }
     return INT32_MAX;
 }
 
+
+
 /**
  *  Return Name of team
  *  @param team Team to return 0...
  *
  */
-char *score_getTeam(uint16_t team)
-{
-    return score_getTeam_adv(scoreCurrent, team);
-}
-
-char *score_getTeam_adv(scoreGame_t* score, uint16_t team)
+char *score_getTeam(scoreGame_t* scoreObj, uint16_t team)
 {
     char *teamName;
     uint16_t counter;
-    if(score)
+    if(scoreObj)
     {
-        if(team < score->num_teams)
+        if(team < scoreObj->num_teams)
         {
-            teamName = score->teamNames;
+            teamName = scoreObj->teamNames;
             for(counter = 0;  counter<team; counter++)
             {
                 teamName += strlen(teamName) + 1;
@@ -320,5 +322,74 @@ char *score_getGame(void)
         return scoreCurrent->game;
     }
     return NULL;
+}
+
+/**
+ * Retrieve historical data
+ */
+
+uint16_t score_H_getNumGames(void)
+{
+    int32_t index=0;
+    config_get_int("scoreGameNum",&index);
+    return (uint16_t)index;
+}
+
+/**
+ * Returns the name of the game and the number of matches
+ */
+uint16_t score_H_getGameStats(uint16_t game, char*GameName)
+{
+    int32_t numMatches=0;
+    char gameName[500];
+    gameName[0]='\0';
+    config_get_string(_k("scoreGameTitle%d",game+1),gameName);
+
+    config_get_int(_k("%s_scoreLen",gameName),&numMatches);
+
+    if(GameName != NULL)
+    {
+        strcpy(GameName, gameName);
+    }
+    return (uint16_t)numMatches;
+}
+
+
+uint16_t score_H_getNumTeams(uint16_t game, uint16_t match)
+{
+    int32_t numTeams=0;
+    char gameName[500];
+    gameName[0]='\0';
+    config_get_string(_k("scoreGameTitle%d",game+1),gameName);
+
+    config_get_int(_k("%s_score%dteamNum",gameName,match+1),&numTeams);
+    return (uint16_t)numTeams;
+}
+
+/**
+ * Gets the Team namd and Team score for a match
+ * @param game The game index to retrieve details for
+ * @param match The match index to retrieve details for
+ * @param team The team index to retrieve details for
+ * @param [out] Pointer to buffer to recive team name
+ *
+ * @return The score for this team
+ */
+int32_t  score_H_getScore(uint16_t game, uint16_t match, uint16_t team, char *TeamName)
+{
+    int32_t teamScore=0;
+    char gameName[500];
+    char teamName[500];
+    gameName[0]='\0';
+    teamName[0]='\0';
+    config_get_string(_k("scoreGameTitle%d",game+1),gameName);
+
+    config_get_string(_k("%s_score%dteam%d",gameName,match+1,team+1),teamName);
+    config_get_int(_k("%s_score%dresult%d",gameName,match+1,team+1),&teamScore);
+    if(TeamName != NULL)
+    {
+        strcpy(TeamName, teamName);
+    }
+    return (uint16_t)teamScore;
 }
 

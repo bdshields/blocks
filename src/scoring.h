@@ -32,18 +32,18 @@ void score_save(void);
 /**
  * Retrieve score details of current game
  */
-uint16_t score_getNumTeams(void);
-int32_t score_getScore(uint16_t team);
-char *score_getTeam(uint16_t team);
 char *score_getGame(void);
+uint16_t score_getNumTeams(void);
+int32_t score_getScore(uint16_t team, char **TeamName);
 
 
 /**
  * Retrieve historic game result
  */
-//uint16_t score_getNumTeams(void);
-
-
+uint16_t score_H_getNumGames(void);
+uint16_t score_H_getGameStats(uint16_t game, char*GameName);
+uint16_t score_H_getNumTeams(uint16_t game, uint16_t match);
+int32_t  score_H_getScore(uint16_t game, uint16_t match, uint16_t team, char *TeamName);
 
 
 #endif /* SRC_SCORING_H_ */

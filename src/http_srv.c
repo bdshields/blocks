@@ -211,21 +211,68 @@ int http_proc(int fd)
                 char        buffer[HTTP_RESP_SIZE];
                 uint16_t    pos;
                 uint16_t    player;
+                char        *teamName;
+                int32_t      teamScore;
                 pos = 0;
                 player = 0;
                 pos += sprintf(buffer+pos,"{ \"type\":\"scoreboard\", \"data\": [");
                 if(score_getNumTeams() > 0)
                 {
                     // print first entry
-                    pos += sprintf(buffer+pos,"{ \"game\": \"%s\", \"player\": \"%s\", \"score\": %d }\n", score_getGame(), score_getTeam(player), score_getScore(player));
+                    teamScore = score_getScore(player, &teamName);
+                    pos += sprintf(buffer+pos,"{ \"game\": \"%s\", \"matches\":[ {\"result\":[{\"team\": \"%s\", \"score\": %d }\n", score_getGame(),teamName, teamScore);
                     player++;
                     while(player < score_getNumTeams())
                     {
-                        pos += sprintf(buffer+pos,",{ \"game\": \"%s\", \"player\": \"%s\", \"score\": %d }\n", score_getGame(), score_getTeam(player), score_getScore(player));
+                        teamScore = score_getScore(player, &teamName);
+                        pos += sprintf(buffer+pos,",{ \"team\": \"%s\", \"score\": %d }\n", teamName, teamScore);
                         player++;
                     }
+                    pos += sprintf(buffer+pos,"]}]}]}");
                 }
-                pos += sprintf(buffer+pos,"]}");
+                else
+                {
+                    // Generate leader board
+                    char tempString[500];
+                    char     comma;
+                    uint16_t numGames;
+                    uint16_t numResults;
+                    uint16_t numTeams;
+                    uint16_t idxGames;
+                    uint16_t idxResults;
+                    uint16_t idxTeams;
+                    int32_t  score;
+
+                    // print first entry
+                    numGames = score_H_getNumGames();
+                    comma = ' ';
+                    for(idxGames = 0; idxGames<numGames; idxGames++)
+                    {
+                        numResults = score_H_getGameStats(idxGames, tempString);
+                        pos += sprintf(buffer+pos,"%c{ \"game\": \"%s\", \"matches\":[ ",comma, tempString);
+                        comma = ' ';
+                        for(idxResults=0; idxResults<numResults;idxResults++)
+                        {
+                            pos += sprintf(buffer+pos,"%c{\"result\":[", comma);
+                            numTeams = score_H_getNumTeams(idxGames, idxResults);
+                            comma = ' ';
+                            for(idxTeams=0; idxTeams<numTeams;idxTeams++)
+                            {
+                                score = score_H_getScore(idxGames, idxResults, idxTeams, tempString);
+                                pos += sprintf(buffer+pos,"%c{ \"team\": \"%s\", \"score\": %d}",comma, tempString, score);
+                                comma = ',';
+                            }
+                            pos += sprintf(buffer+pos,"]}");
+                            comma = ',';
+
+                        }
+                        pos += sprintf(buffer+pos,"]}");
+                        comma = ',';
+
+                    }
+                    pos += sprintf(buffer+pos,"]}");
+
+                }
                 http_respond(fd,200,buffer);
             }
         }
@@ -246,7 +293,7 @@ int http_proc(int fd)
                     {
                         char response[200];
                         in_push((user_input_t){session->player-1,status.buttons} );
-                        snprintf(response, 200,"{\"player\": \"%d\", \"score\": %d}",session->player, score_getScore(session->player-1));
+                        snprintf(response, 200,"{\"player\": \"%d\", \"score\": %d}",session->player, score_getScore(session->player-1, NULL));
                         http_respond(fd,200,response);
                     }
                     else

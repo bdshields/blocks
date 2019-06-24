@@ -12,14 +12,19 @@
     }
     th {
         font-weight: bold;
-    }
-    th, td {
         padding: 15px;
         font-size: 2vw;
     }
-    table, th, td{
+    td {
+        property: inherit;
+    }
+    table, th{
         text-align: center;
         border: 1px solid black;
+    }
+    .compactData{
+        padding: 3px;
+        font-size: 1vw;
     }
     
     </style>
@@ -32,7 +37,7 @@
   <script>
   var update_timer=-1;
   function runInit(){
-       update_timer = setInterval(updateScore, 1000);
+       update_timer = setInterval(updateScore, 2000);
   }
   function updateScore(){
       fetch("/score")
@@ -46,6 +51,48 @@
             .catch(function(){
             });
   }
+  
+  function prepareNewTable(leaderboard, index)
+  {
+        var row;
+        var cell;
+        if((index % 2) == 0)
+        {
+            row = leaderboard.insertRow();
+            row.borderStyle = "none";
+            cell = row.insertCell();
+        }
+        else
+        {
+            cell = leaderboard.rows[scoreboard.rows.length-1].insertCell();
+        }
+        cell.borderStyle = "none";
+        var newTable = document.createElement("TABLE");
+        cell.appendChild(newTable);
+        newTable.style.width = "90%";
+        newTable.style.marginLeft = "5%";
+        newTable.style.marginRight = "5%";
+        return newTable;
+  }
+  
+  function prepareGameLeaderboard(table, game){
+            var header = table.createTHead();
+
+            var row = header.insertRow();
+            row.insertCell(0);
+            row.cells[0].style.borderStyle = "none";
+            row.cells[0].colSpan="3";
+            row.cells[0].innerHTML = game;
+            
+            row = header.insertRow();
+            row.insertCell(0);
+            row.insertCell(1);
+            row.insertCell(2);
+            row.cells[0].innerHTML = "Match";
+            row.cells[1].innerHTML = "Team";
+            row.cells[2].innerHTML = "Score";
+  }
+    
   function clearScoreboard(){
         var scoreboard = document.getElementById("scoreboard");
         if(scoreboard.tHead != null)
@@ -59,24 +106,62 @@
   }
   function drawScoreboard(data){
         var tableTitle = document.getElementById("title");
-        tableTitle.innerHTML = data.type.charAt(0).toUpperCase() + data.type.slice(1);
         var scoreboard = document.getElementById("scoreboard");
         if(data.type == "scoreboard")
         {
             var counter;
-            var header = scoreboard.createTHead();
-            var row = header.insertRow(0);
-            row.insertCell(0);
-            row.insertCell(1);
-            row.cells[0].innerHTML = "Player";
-            row.cells[1].innerHTML = "Score";
-            for(counter=0; counter < data.data.length; counter++)
+            var row;
+            if(data.data.length == 1)
             {
-                row = scoreboard.insertRow();
+                tableTitle.innerHTML = data.data[0].game;
+                var header = scoreboard.createTHead();
+                row = header.insertRow(0);
+    
                 row.insertCell(0);
                 row.insertCell(1);
-                row.cells[0].innerHTML = data.data[counter].player;
-                row.cells[1].innerHTML = data.data[counter].score;
+                row.cells[0].innerHTML = "Team";
+                row.cells[1].innerHTML = "Score";
+                for(counter=0; counter < data.data[0].matches[0].result.length; counter++)
+                {
+                    row = scoreboard.insertRow();
+                    row.insertCell(0);
+                    row.insertCell(1);
+                    row.cells[0].innerHTML = data.data[0].matches[0].result[counter].team;
+                    row.cells[1].innerHTML = data.data[0].matches[0].result[counter].score;
+                }
+            }
+            else if (data.data.length > 1)
+            {
+                var localTable;
+                var cntGame;
+                var cntTeam;
+                tableTitle.innerHTML = "Leader Board";
+                scoreboard.style.width = "80%";
+                scoreboard.boarderStyle = "none";
+                for(cntGame=0; cntGame < data.data.length; cntGame++)
+                {
+                    localTable = prepareNewTable(scoreboard, cntGame);
+                    prepareGameLeaderboard(localTable,data.data[cntGame].game);
+                    for(counter=0; counter < data.data[cntGame].matches.length; counter++)
+                    {
+                        for(cntTeam=0; cntTeam < data.data[cntGame].matches[counter].result.length; cntTeam++)
+                        {
+                            var cell;
+                            row = localTable.insertRow();
+                            row.className = "compactData";
+                            if(cntTeam == 0)
+                            {
+                                cell = row.insertCell();
+                                cell.innerHTML = counter+1;
+                                cell.rowSpan=data.data[cntGame].matches[counter].result.length;
+                            }
+                            cell = row.insertCell();
+                            cell.innerHTML = data.data[cntGame].matches[counter].result[cntTeam].team;
+                            cell = row.insertCell();
+                            cell.innerHTML = data.data[cntGame].matches[counter].result[cntTeam].score;
+                        }
+                    }
+                }
             }
         }
   }
