@@ -163,10 +163,12 @@ close_http:
 
 INCHTML(remote,"../src/remote.html");
 INCHTML(scoreboard,"../src/scoreboard.html");
+INCHTML(config,"../src/config.html");
 
 
 typedef struct player_status_s{
     char        *id;
+    char        *name;
     bu_nav_t    buttons;
     int8_t      action;  //0 - None, 1 - Update, 2 - expire
 }player_status_t;
@@ -201,6 +203,10 @@ int http_proc(int fd)
             if(strcmp("/", path) == 0)
             {
                 http_respond(fd,200,(char*)&html_remote_start);
+            }
+            else if(strcmp("/config", path) == 0)
+            {
+                http_respond(fd,200,(char*)&html_config_start);
             }
             else if(strcmp("/scoreboard", path) == 0)
             {
@@ -287,19 +293,24 @@ int http_proc(int fd)
                 json_parse_object(form, player_json_callback, &status);
                 if(status.action == 1)
                 {
-                    // upate player status
+                    // update player status
                     session=http_session_find( status.id);
                     if(session != NULL)
                     {
-                        char response[200];
-                        in_push((user_input_t){session->player-1,status.buttons} );
-                        snprintf(response, 200,"{\"player\": \"%d\", \"score\": %d}",session->player, score_getScore(session->player-1, NULL));
+                        char response[500];
+                        if(strcmp(status.name,"Unknown") != 0)
+                        {
+                            // Update player's name
+                            strcpy(session->name,status.name);
+                        }
+                        in_push((user_input_t){session->player,status.buttons} );
+                        snprintf(response, 200,"{\"player\": \"%d\", \"score\": %d}",session->player, score_getScore(session->team-1, NULL));
                         http_respond(fd,200,response);
                     }
                     else
                     {
                         char response[100];
-                        snprintf(response, 100,"{\"player\": \"?\"}");
+                        snprintf(response, 100,"{\"player\": \"?\", \"score\": 0}");
                         http_respond(fd,200,response);
                     }
                 }
@@ -445,6 +456,10 @@ void player_json_callback(char *key, char *value, void *param)
             }
             value = strtok(NULL,",\0");
         }
+    }
+    else if(strcmp(key,"name") == 0)
+    {
+        status->name = value;
     }
     else if(strcmp(key,"action") == 0)
     {

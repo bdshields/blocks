@@ -37,6 +37,7 @@
 struct _game{
     void (*run)(uint16_t x, uint16_t y);
     raster_t *(*option)(void);
+    int16_t min_players;
 };
 
 const struct _game games[]=
@@ -44,18 +45,22 @@ const struct _game games[]=
     {
         .run = tetris_run,
         .option = tetris_option,
+        .min_players = 1,
     },
     {
         .run = invaders_run,
         .option = invaders_option,
+        .min_players = 1,
     },
     {
         .run = ripples_run,
         .option = ripples_option,
+        .min_players = 1,
     },
     {
         .run = pong_run,
         .option = pong_option,
+        .min_players = 2,
     },
 };
 
@@ -160,8 +165,12 @@ int main(int argc, char *argv[])
                 break;
             case bu_a:
             case bu_b:
-                games[counter].run(SCR_WIDTH, SCR_HEIGHT);
-                menu_state = 0;
+                if((http_session_countActive() >= games[counter].min_players) || (button.user >= games[counter].min_players))
+                {
+                    games[counter].run(SCR_WIDTH, SCR_HEIGHT);
+                    http_session_clrPlayers();
+                    menu_state = 0;
+                }
                 break;
             case bu_none:
                 frame_sleep(50);

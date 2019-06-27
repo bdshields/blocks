@@ -16,6 +16,7 @@
 #include "frame_drv.h"
 #include "frame_buffer.h"
 #include "scoring.h"
+#include "http_session.h"
 
 typedef enum pong_state_e{
     ps_none,
@@ -54,7 +55,18 @@ void pong_run(uint16_t x, uint16_t y)
     pong_state_t    state=ps_init_game;
     user_input_t    button;
 
-    score_init("Pong",2, "Player 1", "Player 2");
+
+    if(http_session_setPlayers(2) == 2)
+    {
+        http_session_setTeams(1);
+        score_init("Pong",2, http_session_getTeamName(1), http_session_getTeamName(2));
+
+    }
+    else
+    {
+        score_init("Pong",2, "Player 1", "Player 2");
+
+    }
     game_area = fb_allocate(x, y);
 
     while(1)
@@ -189,41 +201,46 @@ void pong_run(uint16_t x, uint16_t y)
         }
 
         button = in_get_bu();
-        switch(button.button)
+        if(button.user > 0)
         {
-        case bu_left:
-            if(pos_player[button.user].x > 0)
+            int16_t player;
+            player = button.user-1;
+            switch(button.button)
             {
-                pos_player[button.user].x--;
-                if((state == ps_start_wait)&&(who_won == button.user))
+            case bu_left:
+                if(pos_player[player].x > 0)
                 {
-                    // move the ball also if attached to player
-                    ball_x--;
+                    pos_player[player].x--;
+                    if((state == ps_start_wait)&&(who_won == player))
+                    {
+                        // move the ball also if attached to player
+                        ball_x--;
+                    }
+                    update_scr = 1;
                 }
-                update_scr = 1;
-            }
-            break;
-        case bu_right:
-            if((pos_player[button.user].x + pong_paddle.x_max) < (game_area->x_max))
-            {
-                pos_player[button.user].x++;
-                if((state == ps_start_wait)&&(who_won == button.user))
+                break;
+            case bu_right:
+                if((pos_player[player].x + pong_paddle.x_max) < (game_area->x_max))
                 {
-                    // move the ball also if attached to player
-                    ball_x++;
+                    pos_player[player].x++;
+                    if((state == ps_start_wait)&&(who_won == player))
+                    {
+                        // move the ball also if attached to player
+                        ball_x++;
+                    }
+                    update_scr = 1;
                 }
-                update_scr = 1;
+                break;
+            case bu_a:
+                if((state == ps_start_wait)&&(who_won == player))
+                {
+                    state = ps_start_match;
+                }
+                break;
+            case bu_start:
+                goto exit;
+                break;
             }
-            break;
-        case bu_a:
-            if((state == ps_start_wait)&&(who_won == button.user))
-            {
-                state = ps_start_match;
-            }
-            break;
-        case bu_start:
-            goto exit;
-            break;
         }
 
     }

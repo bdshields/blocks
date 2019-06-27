@@ -270,11 +270,11 @@ uint16_t score_getNumTeams(void)
  *  @param team Team to return 0...
  *
  */
-int32_t score_getScore(uint16_t team, char **TeamName)
+int32_t score_getScore(int16_t team, char **TeamName)
 {
     if(scoreCurrent)
     {
-        if(team < scoreCurrent->num_teams)
+        if((team>=0)&&(team < scoreCurrent->num_teams))
         {
             if(TeamName != NULL)
             {
@@ -283,7 +283,7 @@ int32_t score_getScore(uint16_t team, char **TeamName)
             return scoreCurrent->teamScore[team];
         }
     }
-    return INT32_MAX;
+    return -1;
 }
 
 

@@ -26,7 +26,7 @@ typedef struct user_input_s {
     bu_nav_t button;
 }user_input_t;
 
-#define MAX_USERS 2
+#define MAX_USERS 5 // 4 players, plus wildcard
 
 #define INPUT(_user,_button) ((user_input_t){.user=_user, .button=_button})
 

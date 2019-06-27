@@ -80,7 +80,6 @@
 
             var row = header.insertRow();
             row.insertCell(0);
-            row.cells[0].style.borderStyle = "none";
             row.cells[0].colSpan="3";
             row.cells[0].innerHTML = game;
             
@@ -95,14 +94,7 @@
     
   function clearScoreboard(){
         var scoreboard = document.getElementById("scoreboard");
-        if(scoreboard.tHead != null)
-        {
-            scoreboard.deleteTHead();
-        }
-        while(scoreboard.rows.length > 0)
-        {
-            scoreboard.deleteRow();
-        }
+        scoreboard.innerHTML= "";
   }
   function drawScoreboard(data){
         var tableTitle = document.getElementById("title");

@@ -19,6 +19,7 @@
 #include "frame_drv.h"
 
 #include "scoring.h"
+#include "http_session.h"
 
 const raster_t *block_list[]={
         &tetris_1,
@@ -85,7 +86,16 @@ void tetris_run(uint16_t x, uint16_t y)
 
     uint16_t game_state = ts_init_game;
 
-    score_init("Tetris", 1, "Player 1");
+    if(http_session_setPlayers(1) == 1)
+    {
+        http_session_setTeams(1);
+        score_init("Tetris", 1, http_session_getTeamName(1));
+    }
+    else
+    {
+        // Just playing at the terminal
+        score_init("Tetris", 1, "Player 1");
+    }
 
     dropped_blocks = fb_allocate(x, y);
     game_area = fb_allocate(x, y);
@@ -199,43 +209,47 @@ void tetris_run(uint16_t x, uint16_t y)
             break;
         case ts_none:
             button = in_get_bu();
-            switch(button.button)
+            if(button.user == 1)
             {
-            case bu_left:
-                if(!(touching & left))
+                switch(button.button)
                 {
-                    pos_block.x --;
-                    update_scr = 1;
+                case bu_left:
+                    if(!(touching & left))
+                    {
+                        pos_block.x --;
+                        update_scr = 1;
+                    }
+                    break;
+                case bu_right:
+                    if(!(touching & right))
+                    {
+                        pos_block.x ++;
+                        update_scr = 1;
+                    }
+                    break;
+                case bu_a:
+                case bu_up:
+                    if(sprite_can_rotate(dropped_blocks, sprite_block, pos_block, tr_rot_left))
+                    {
+                        sprite_transform(sprite_block,tr_rot_left);
+                        update_scr = 1;
+                    }
+                    break;
+                case bu_b:
+                    if(sprite_can_rotate(dropped_blocks, sprite_block, pos_block, tr_rot_right))
+                    {
+                        sprite_transform(sprite_block,tr_rot_right);
+                        update_scr = 1;
+                    }
+                    break;
+                case bu_down:
+                    game_state = ts_drop_block;
+                    break;
+                case bu_start:
+                    goto exit;
+                    break;
                 }
-                break;
-            case bu_right:
-                if(!(touching & right))
-                {
-                    pos_block.x ++;
-                    update_scr = 1;
-                }
-                break;
-            case bu_a:
-            case bu_up:
-                if(sprite_can_rotate(dropped_blocks, sprite_block, pos_block, tr_rot_left))
-                {
-                    sprite_transform(sprite_block,tr_rot_left);
-                    update_scr = 1;
-                }
-                break;
-            case bu_b:
-                if(sprite_can_rotate(dropped_blocks, sprite_block, pos_block, tr_rot_right))
-                {
-                    sprite_transform(sprite_block,tr_rot_right);
-                    update_scr = 1;
-                }
-                break;
-            case bu_down:
-                game_state = ts_drop_block;
-                break;
-            case bu_start:
-                goto exit;
-                break;
+
             }
             break;
         }

@@ -126,19 +126,19 @@ void *input_main(void* context)
             {
             case 'A':
                 // Up arrow
-                in_push(INPUT(0,bu_up));
+                in_push(INPUT(1,bu_up));
                 break;
             case 'B':
                 // Down arrow
-                in_push(INPUT(0,bu_down));
+                in_push(INPUT(1,bu_down));
                 break;
             case 'C':
                 // Right arrow
-                in_push(INPUT(0,bu_right));
+                in_push(INPUT(1,bu_right));
                 break;
             case 'D':
                 // Left arrow
-                in_push(INPUT(0,bu_left));
+                in_push(INPUT(1,bu_left));
                 break;
             }
             printf("\x1b[s\x1b[0;0HReceived Esc:  %3d                   \x1b[u",data);
@@ -150,47 +150,47 @@ void *input_main(void* context)
              *   PLAYER   1
              */
             case '.':
-                in_push(INPUT(0,bu_a));
+                in_push(INPUT(1,bu_a));
                 break;
             case ',':
-                in_push(INPUT(0,bu_b));
+                in_push(INPUT(1,bu_b));
                 break;
             case ']':
-                in_push(INPUT(0,bu_start));
+                in_push(INPUT(1,bu_start));
                 break;
             case '[':
-                in_push(INPUT(0,bu_select));
+                in_push(INPUT(1,bu_select));
                 break;
                 /**
                  *   PLAYER   2
                  */
             case 'w':
                 // Up arrow
-                in_push(INPUT(1,bu_up));
+                in_push(INPUT(2,bu_up));
                 break;
             case 's':
                 // Down arrow
-                in_push(INPUT(1,bu_down));
+                in_push(INPUT(2,bu_down));
                 break;
             case 'd':
                 // Right arrow
-                in_push(INPUT(1,bu_right));
+                in_push(INPUT(2,bu_right));
                 break;
             case 'a':
                 // Left arrow
-                in_push(INPUT(1,bu_left));
+                in_push(INPUT(2,bu_left));
                 break;
             case 'b':
-                in_push(INPUT(1,bu_a));
+                in_push(INPUT(2,bu_a));
                 break;
             case 'v':
-                in_push(INPUT(1,bu_b));
+                in_push(INPUT(2,bu_b));
                 break;
             case 'r':
-                in_push(INPUT(1,bu_start));
+                in_push(INPUT(2,bu_start));
                 break;
             case 't':
-                in_push(INPUT(1,bu_select));
+                in_push(INPUT(2,bu_select));
                 break;
             }
             printf("\x1b[s\x1b[0;0HReceived data: %3d                   \x1b[u",data);

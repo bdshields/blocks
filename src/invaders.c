@@ -15,6 +15,7 @@
 #include "frame_drv.h"
 #include "colours.h"
 #include "scoring.h"
+#include "http_session.h"
 
 #define ALIEN_HEADROOM 4  // Space above aliens
 #define ALIEN_FOOTER   8  // Space between aliens and cannon
@@ -70,7 +71,15 @@ void invaders_run(uint16_t x, uint16_t y)
     uint16_t    total_aliens;
     enum invader_state game_state = is_init_game;
 
-    score_init("Invaders", 1,"Player 1","Player 2");
+    if(http_session_setPlayers(1) == 1)
+    {
+        http_session_setTeams(1);
+        score_init("Invaders", 1,http_session_getTeamName(1));
+    }
+    else
+    {
+        score_init("Invaders", 1,"Player 1");
+    }
     game_area = fb_allocate(x, y);
     aliens = fb_allocate(x-ALIEN_SWING, y - invader_cannon.y_max - CANNON_HEADROOM - ALIEN_HEADROOM - ALIEN_FOOTER);
     while(1)
@@ -218,31 +227,34 @@ void invaders_run(uint16_t x, uint16_t y)
         if((game_state != is_game_win)&&(game_state !=is_game_over ))
         {
             button = in_get_bu();
-            switch(button.button)
+            if(button.user == 1)
             {
-            case bu_left:
-                if(pos_cannon.x > 0)
+                switch(button.button)
                 {
-                    pos_cannon.x--;
-                    update_scr = 1;
+                case bu_left:
+                    if(pos_cannon.x > 0)
+                    {
+                        pos_cannon.x--;
+                        update_scr = 1;
+                    }
+                    break;
+                case bu_right:
+                    if((pos_cannon.x + invader_cannon.x_max) < (game_area->x_max))
+                    {
+                        pos_cannon.x++;
+                        update_scr = 1;
+                    }
+                    break;
+                case bu_a:
+                    if(pos_bomb.y == -1)
+                    {
+                        game_state = is_shoot;
+                    }
+                    break;
+                case bu_start:
+                    goto exit;
+                    break;
                 }
-                break;
-            case bu_right:
-                if((pos_cannon.x + invader_cannon.x_max) < (game_area->x_max))
-                {
-                    pos_cannon.x++;
-                    update_scr = 1;
-                }
-                break;
-            case bu_a:
-                if(pos_bomb.y == -1)
-                {
-                    game_state = is_shoot;
-                }
-                break;
-            case bu_start:
-                goto exit;
-                break;
             }
 
         }

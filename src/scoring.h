@@ -34,7 +34,7 @@ void score_save(void);
  */
 char *score_getGame(void);
 uint16_t score_getNumTeams(void);
-int32_t score_getScore(uint16_t team, char **TeamName);
+int32_t score_getScore(int16_t team, char **TeamName);
 
 
 /**

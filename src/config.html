@@ -1,0 +1,50 @@
+<html>
+  <head>
+    <title>blocks - User Details</title>
+    <style>
+    body {
+        background: grey;
+    }
+    .configHeadings {
+        position: absolute;
+        width: 40%;
+        text-align: right;
+    }
+    .configEntry {
+        position: absolute;
+        left: 42%;
+    }
+    </style>
+  </head>
+  <body onload="runInit()">
+  <div class="configHeadings">
+    User Name:
+  </div>
+  <div class="configEntry">
+    <input id="name" oninput="checkName(this)"></input><br>
+    <button onClick="update()">Submit</button>
+  </div>
+  </body>
+  <script>
+  
+  var playerName = localStorage.playerName ? localStorage.playerName : localStorage.playerName = "Unknown";
+  
+  function runInit(){
+    var nameField=document.getElementById("name");
+    nameField.value=playerName;
+  }
+  function update(){
+    var nameField=document.getElementById("name");
+    if(nameField.value.length>0)
+    {
+        localStorage.playerName=nameField.value;
+    }
+  }
+  function checkName(input){
+    if(input.value.length>0){
+        var regex = /[^\w\d]/ig
+        input.value=input.value.replace(regex,'');
+    }
+  }
+  </script>
+</html>

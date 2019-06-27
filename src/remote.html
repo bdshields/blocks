@@ -89,6 +89,7 @@
         <figure id="start" class="option_button" style="left:70%;top:15%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
         <figure id="select" class="option_button" style="left:70%;top:30%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
     </div>
+    <div id="playerName" class="player" style="font-size: 4vw;left:45%;padding-top: 70%;"></div>
   </body>
   <script>
   var active_buttons=[];
@@ -98,8 +99,10 @@
   var delay=-1;
   var usetouch=0;
   var tabID = sessionStorage.tabID ? sessionStorage.tabID : sessionStorage.tabID = Math.random();
-  
+  var playerName = localStorage.playerName ? localStorage.playerName : localStorage.playerName = "Unknown";
   function runInit(){
+       var name = document.getElementById("playerName");
+       name.innerText=playerName;
        updateStatus();
        adjustTimer(10000);
   }
@@ -183,6 +186,7 @@
   function updatePlayer(buttons){
       var status={};
       status.id = tabID.toString();
+      status.name=playerName;
       status.buttons = buttons;
       status.action = "update";
 
