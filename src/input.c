@@ -27,7 +27,8 @@ pthread_mutex_t    in_button_mtex = PTHREAD_MUTEX_INITIALIZER;
  */
 user_input_t in_get_bu(void)
 {
-    static uint16_t user_toggle=0;
+    static uint16_t last_user = 0;
+    uint16_t user;
 
     user_input_t input;
     uint8_t  mask;
@@ -36,35 +37,42 @@ user_input_t in_get_bu(void)
     input.button = bu_none;
 
     // Buffer the button inputs so that there are no priority issues
-    if(in_button_buffered[user_toggle] == bu_none)
+    for(user = 0; user<MAX_USERS;  user++)
     {
-        if(pthread_mutex_trylock(&in_button_mtex) == 0)
+        if(in_button_buffered[user] == bu_none)
         {
-            in_button_buffered[user_toggle] = in_button[user_toggle];
-            in_button[user_toggle] = bu_none;
-            pthread_mutex_unlock(&in_button_mtex);
+            if(pthread_mutex_trylock(&in_button_mtex) == 0)
+            {
+                in_button_buffered[user] = in_button[user];
+                in_button[user] = bu_none;
+                pthread_mutex_unlock(&in_button_mtex);
+            }
         }
     }
     // Test each button bit and return when we find one
-    mask = 0x80;
-    while(mask > 0)
-    {
-        if(in_button_buffered[user_toggle] & mask)
+    user = last_user;
+    do{
+        user ++;
+        if(user == MAX_USERS)
         {
-            // Button is set, so return it
-            input.user = user_toggle;
-            input.button = mask;
-            in_button_buffered[user_toggle] &= ~mask;
-            break;
+            user = 0;
         }
-        mask >>=1;
-    }
-    // Prepare to check next user
-    user_toggle ++;
-    if(user_toggle >= MAX_USERS)
-    {
-        user_toggle = 0;
-    }
+        mask = 0x80;
+        while(mask > 0)
+        {
+            if(in_button_buffered[user] & mask)
+            {
+                // Button is set, so return it
+                input.user = user;
+                input.button = mask;
+                in_button_buffered[user] &= ~mask;
+                goto found_button;
+            }
+            mask >>=1;
+        }
+    }while(user != last_user);
+found_button:
+    last_user = user;
     // Return the data
     return input;
 }

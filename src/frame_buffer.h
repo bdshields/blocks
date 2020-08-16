@@ -51,7 +51,14 @@ void fb_init();
 
 static inline pixel_t *fb_get_pixel(raster_t * raster, uint16_t x, uint16_t y)
 {
-    return raster->image + (y*raster->x_max) + x;
+    if((x < raster->x_max)&&(y < raster->y_max))
+    {
+        return raster->image + (y*raster->x_max) + x;
+    }
+    else
+    {
+        return raster->image;
+    }
 }
 
 

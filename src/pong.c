@@ -6,6 +6,7 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
 #include "pong.h"
 #include "pong_sprites.h"
 #include "utils.h"
@@ -34,6 +35,7 @@ raster_t *pong_option(void)
 }
 
 void pong_calc_increments(float angle, float *inc_x, float *inc_y);
+float random_angle(float min, float max);
 
 
 void pong_run(uint16_t x, uint16_t y)
@@ -45,11 +47,18 @@ void pong_run(uint16_t x, uint16_t y)
     float           ball_y;
     float           ball_inc_x;
     float           ball_inc_y;
+
+    /**
+     * Angle is in radians relative to 12 O'clock.
+     * clockwise is positive angle
+     * Counter-Clockwise is negative angle
+     */
     float           ball_angle;
     systime         ball_tmr;
 
     pos_t           pos_player[2];
     uint16_t        who_won;
+    uint16_t        num_players;
 
     uint16_t        update_scr;
     pong_state_t    state=ps_init_game;
@@ -60,13 +69,20 @@ void pong_run(uint16_t x, uint16_t y)
     {
         http_session_setTeams(1);
         score_init("Pong",2, http_session_getTeamName(1), http_session_getTeamName(2));
-
+        num_players = 2;
+    }
+    else if(http_session_setPlayers(1) == 1)
+    {
+        http_session_setTeams(1);
+        score_init("Pong",1, http_session_getTeamName(1));
+        num_players = 1;
     }
     else
     {
-        score_init("Pong",2, "Player 1", "Player 2");
-
+        score_init("Pong",1, "Player 1");
+        num_players = 1;
     }
+
     game_area = fb_allocate(x, y);
 
     while(1)
@@ -76,9 +92,9 @@ void pong_run(uint16_t x, uint16_t y)
         case ps_init_game:
             pos_player[1] = (pos_t){x/2,2};     // Top player
             pos_player[0] = (pos_t){x/2,y-3};   // Bottom player
-            who_won = 1;
+            who_won = 0;
             ball_x = x/2;
-            ball_y = 3;
+            ball_y = y-4;
             cancel_alarm(&ball_tmr);
             score_set(0,0);
             score_set(1,0);
@@ -98,10 +114,22 @@ void pong_run(uint16_t x, uint16_t y)
             }
             else
             {
-                who_won = 1;
-                score_adjust(1,5);
-                ball_x = x/2;
-                ball_y = 3;
+                // Bottom player missed ball
+                if(num_players == 2)
+                {
+                    who_won = 1;
+                    score_adjust(1,5);
+                    ball_x = x/2;
+                    ball_y = 3;
+                }
+                else
+                {
+                    // Only one player
+                    who_won = 0;
+//                    score_adjust(1,5);
+                    ball_x = x/2;
+                    ball_y = y-4;
+                }
             }
             // reset player positions
             pos_player[1] = (pos_t){x/2,2};     // Top player
@@ -113,11 +141,11 @@ void pong_run(uint16_t x, uint16_t y)
         case ps_start_match:
             if(who_won)
             {
-                ball_angle = M_PI * 0.9;
+                ball_angle = random_angle(M_PI * 0.9, M_PI * 1.1);
             }
             else
             {
-                ball_angle = M_PI * 0.1;
+                ball_angle = random_angle(-(M_PI * 0.1), M_PI * 0.1);
             }
             ball_tmr = set_alarm(BALL_RATE / y);
             pong_calc_increments(ball_angle, &ball_inc_x, &ball_inc_y);
@@ -137,13 +165,22 @@ void pong_run(uint16_t x, uint16_t y)
             // Check walls
             if(! (roundf(ball_x) < (x-1)))
             {
-                ball_angle = -ball_angle;
-                update_inc = 1;
+                // Contact right side
+                if(ball_inc_x > 0)
+                {
+                    // If heading into wall, bounce off it
+                    ball_angle = -ball_angle + random_angle(-0.05, 0.05);
+                    update_inc = 1;
+                }
             }
             if(! (roundf(ball_x) > 0))
             {
-                ball_angle = -ball_angle;
-                update_inc = 1;
+                if(ball_inc_x < 0)
+                {
+                    // If heading into wall, bounce off it
+                    ball_angle = -ball_angle + random_angle(-0.05, 0.05);
+                    update_inc = 1;
+                }
             }
 
             // Ball goes out of play
@@ -153,17 +190,29 @@ void pong_run(uint16_t x, uint16_t y)
             }
             if(! (roundf(ball_y) > 0))
             {
-                state = ps_end_match;
+                if(num_players == 2)
+                {
+                        state = ps_end_match;
+                }
+                else
+                {
+                    // one player, so bounce from the top
+                    ball_angle = M_PI-ball_angle+random_angle(-0.05, 0.05);
+                    update_inc = 1;
+                }
             }
 
             // Check for paddle
             // Top Player
-            if(roundf(ball_y) == (pos_player[1].y + 1))
+            if(num_players == 2)
             {
-                if((roundf(ball_x) >= pos_player[1].x) && (roundf(ball_x) < (pos_player[1].x + pong_paddle.x_max)))
+                if(roundf(ball_y) == (pos_player[1].y + 1))
                 {
-                    ball_angle = M_PI-ball_angle;
-                    update_inc = 1;
+                    if((roundf(ball_x) >= pos_player[1].x) && (roundf(ball_x) < (pos_player[1].x + pong_paddle.x_max)))
+                    {
+                        ball_angle = M_PI-ball_angle+random_angle(-0.05, 0.05);
+                        update_inc = 1;
+                    }
                 }
             }
             // Bottom player
@@ -171,7 +220,7 @@ void pong_run(uint16_t x, uint16_t y)
             {
                 if((roundf(ball_x) >= pos_player[0].x) && (roundf(ball_x) < (pos_player[0].x + pong_paddle.x_max)))
                 {
-                    ball_angle = M_PI-ball_angle;
+                    ball_angle = M_PI-ball_angle+random_angle(-0.05, 0.05);
                     update_inc = 1;
                 }
             }
@@ -191,7 +240,10 @@ void pong_run(uint16_t x, uint16_t y)
         {
             clear_raster(game_area);
             paste_sprite(game_area, &pong_paddle,pos_player[0]);
-            paste_sprite(game_area, &pong_paddle,pos_player[1]);
+            if(num_players == 2)
+            {
+                paste_sprite(game_area, &pong_paddle,pos_player[1]);
+            }
 
             fb_get_pixel(game_area, roundf(ball_x), roundf(ball_y))[0] = PX_GREEN;
 
@@ -261,4 +313,16 @@ void pong_calc_increments(float angle, float *inc_x, float *inc_y)
 {
     *inc_x = sinf(angle);
     *inc_y = -cosf(angle);
+}
+
+/**
+ * min,max is angle in radians
+ */
+float random_angle(float min, float max)
+{
+    float angle;
+
+    angle = (((float)rand()/(float)RAND_MAX) * (max - min)) + min;
+
+    return angle;
 }

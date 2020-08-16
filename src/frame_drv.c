@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 
 #include "frame_drv.h"
@@ -21,7 +22,7 @@
 #define WS2811_MAX_POWER 5
 #define GPIO_PIN 21
 
-#define WS2811_MAX_WIDTH 16
+#define WS2811_MAX_WIDTH 24
 #define WS2811_STRIP_WIDTH 8
 #define WS2811_MAX_HEIGHT 32
 
@@ -145,6 +146,8 @@ int frame_drv_render(raster_t * raster)
 #ifdef WS2811_LIB
     case dr_ws2811:
     {
+        int16_t    strip_start_x_dir[]={-1,-1,1};
+        int16_t    strip_dir;
         int16_t    raster_x;
         int16_t    raster_y;
         int16_t    min_x;     // Min value inclusive
@@ -152,11 +155,22 @@ int frame_drv_render(raster_t * raster)
         uint16_t    led_index;
         int16_t     step_x=1;
         int16_t     step_y=1;
-        max_x = WS2811_STRIP_WIDTH -1;
-        min_x = 0;
-        raster_x = max_x;
-        step_x=-1;
+        int16_t     strip_index;
+
+        // Coordinates of raster that map to LED 0
+        raster_x = 23;
         raster_y = 0;
+
+        // Direction to step through raster
+        step_x=strip_start_x_dir[0];
+        step_y=1;
+
+        max_x = (3*WS2811_STRIP_WIDTH) -1;
+        min_x = (2*WS2811_STRIP_WIDTH);
+
+        strip_dir = -1;
+        strip_index=1;
+
         for(led_index=0; led_index<ws2811_strip.channel[0].count; led_index++)
         {
 #if 1
@@ -188,24 +202,26 @@ int frame_drv_render(raster_t * raster)
             {
                 if(raster_y == WS2811_MAX_HEIGHT)
                 {
+                    strip_index++;
                     step_y = -1;
-                    min_x += WS2811_STRIP_WIDTH;
-                    max_x += WS2811_STRIP_WIDTH;
+                    min_x += (WS2811_STRIP_WIDTH * strip_dir);
+                    max_x += (WS2811_STRIP_WIDTH * strip_dir);
                     raster_y += step_y;
-                    raster_x = min_x;
-                    step_x = 1;
+                    raster_x = strip_start_x_dir[strip_index] == 1 ? min_x : max_x;
+                    step_x = strip_start_x_dir[strip_index];
                 }
             }
             else if(step_y == -1)
             {
                 if(raster_y < 0)
                 {
+                    strip_index++;
                     step_y = 1;
-                    min_x += WS2811_STRIP_WIDTH;
-                    max_x += WS2811_STRIP_WIDTH;
+                    min_x += (WS2811_STRIP_WIDTH * strip_dir);
+                    max_x += (WS2811_STRIP_WIDTH * strip_dir);
                     raster_y += step_y;
-                    raster_x = min_x;
-                    step_x = 1;
+                    raster_x = strip_start_x_dir[strip_index] == 1 ? min_x : max_x;
+                    step_x = strip_start_x_dir[strip_index];
                 }
             }
 

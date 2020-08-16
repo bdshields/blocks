@@ -32,6 +32,7 @@
 #include "invaders.h"
 #include "saver_ripples.h"
 #include "pong.h"
+#include "paint.h"
 
 
 struct _game{
@@ -60,13 +61,18 @@ const struct _game games[]=
     {
         .run = pong_run,
         .option = pong_option,
-        .min_players = 2,
+        .min_players = 1,
+    },
+    {
+        .run = paint_run,
+        .option = paint_option,
+        .min_players = 1,
     },
 };
 
-#define NUM_GAMES 4
+#define NUM_GAMES 5
 
-#define SCR_WIDTH 16
+#define SCR_WIDTH 24
 #define SCR_HEIGHT 32
 
 void clear_down();

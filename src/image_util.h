@@ -29,5 +29,6 @@ void sprite_parser(raster_t *sprite, uint16_t flag_mask, sp_cb callback_f, void 
 uint16_t sprite_touching(raster_t *raster, raster_t *sprite, pos_t pos);
 uint16_t sprite_transform(raster_t *sprite, transform_t rotate);
 uint16_t sprite_can_rotate(raster_t *raster, raster_t *sprite, pos_t origin, transform_t rotate);
+uint16_t pos_out_raster(raster_t *raster, pos_t pos);
 
 #endif /* SRC_IMAGE_UTIL_H_ */
