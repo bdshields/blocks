@@ -219,7 +219,7 @@ void score_save(void)
                 }
             }
             // tack new score on the end if space
-            if(indexStore < SCORE_HIST)
+            if((indexStore < SCORE_HIST) && (! insertDone))
             {
                 topScores[indexStore] = scoreCurrent;
                 indexStore ++;
