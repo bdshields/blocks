@@ -20,11 +20,11 @@
 #include <ws2811.h>
 
 #define WS2811_MAX_POWER 5
-#define GPIO_PIN 21
+#define GPIO_PIN 12
 
-#define WS2811_MAX_WIDTH 24
-#define WS2811_STRIP_WIDTH 8
-#define WS2811_MAX_HEIGHT 32
+#define WS2811_MAX_WIDTH 15
+#define WS2811_STRIP_WIDTH 15
+#define WS2811_MAX_HEIGHT 30
 
 
 
@@ -39,7 +39,7 @@ ws2811_t ws2811_strip =
             .gpionum = GPIO_PIN,
             .count = WS2811_MAX_WIDTH * WS2811_MAX_HEIGHT,
             .invert = 0,
-            .brightness = 16,
+            .brightness = 64,
             .strip_type = WS2811_STRIP_GRB,
         },
         [1] =
@@ -146,7 +146,7 @@ int frame_drv_render(raster_t * raster)
 #ifdef WS2811_LIB
     case dr_ws2811:
     {
-        int16_t    strip_start_x_dir[]={-1,-1,1};
+        int16_t    strip_start_x_dir[]={1,-1,1};
         int16_t    strip_dir;
         int16_t    raster_x;
         int16_t    raster_y;
@@ -158,17 +158,17 @@ int frame_drv_render(raster_t * raster)
         int16_t     strip_index;
 
         // Coordinates of raster that map to LED 0
-        raster_x = 23;
+        raster_x = 0;
         raster_y = 0;
 
         // Direction to step through raster
         step_x=strip_start_x_dir[0];
         step_y=1;
 
-        max_x = (3*WS2811_STRIP_WIDTH) -1;
-        min_x = (2*WS2811_STRIP_WIDTH);
+        max_x = (1*WS2811_STRIP_WIDTH) -1;
+        min_x = (0*WS2811_STRIP_WIDTH);
 
-        strip_dir = -1;
+        strip_dir = 1;
         strip_index=1;
 
         for(led_index=0; led_index<ws2811_strip.channel[0].count; led_index++)

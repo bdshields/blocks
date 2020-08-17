@@ -72,8 +72,8 @@ const struct _game games[]=
 
 #define NUM_GAMES 5
 
-#define SCR_WIDTH 24
-#define SCR_HEIGHT 32
+#define SCR_WIDTH 15
+#define SCR_HEIGHT 30
 
 void clear_down();
 void sig_handler(int sig);
