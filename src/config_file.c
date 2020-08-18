@@ -168,6 +168,7 @@ void config_put_string(char *key, char *value)
     char new_line[500];
     uint16_t length;
     int16_t  size_increase;
+    int16_t size_move;
     char *existing;
     char *end_ptr;
 
@@ -177,9 +178,10 @@ void config_put_string(char *key, char *value)
     if(existing)
     {
         size_increase = length - (end_ptr - existing);
-        if(size_increase != 0)
+        size_move = config_length - (end_ptr - config_buffer);
+        if((size_increase != 0) && (size_move != 0))
         {
-            memmove(end_ptr + size_increase, end_ptr, config_length - (end_ptr - config_buffer));
+            memmove(end_ptr + size_increase, end_ptr, size_move);
         }
         memcpy(existing, new_line, length);
         config_length += size_increase;
