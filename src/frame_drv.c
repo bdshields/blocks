@@ -14,6 +14,7 @@
 
 #include "frame_drv.h"
 #include "frame_buffer.h"
+#include "utils.h"
 
 
 #ifdef WS2811_LIB
@@ -56,7 +57,7 @@ ws2811_t ws2811_strip =
 #endif
 
 drv_type frame_drv_type = dr_none;
-
+disp_state frame_drv_state = ds_none;
 
 int frame_drv_init(int x, int y, drv_type type)
 {
@@ -67,12 +68,15 @@ int frame_drv_init(int x, int y, drv_type type)
         // Use escape sequence to set window size
         printf("\x1b[8;%d;%dt",y+5, (x*2)+2);
         frame_drv_type = type;
+        frame_drv_state = ds_active;
         result = 1;
         break;
 #ifdef WS2811_LIB
     case dr_ws2811:
     {
         ws2811_return_t ret;
+        system("echo 1 > /sys/class/gpio/gpio23/value");
+        frame_sleep(1000);
         if ((ret = ws2811_init(&ws2811_strip)) != WS2811_SUCCESS)
         {
             fprintf(stderr, "ws2811_init failed: %s\n", ws2811_get_return_t_str(ret));
@@ -81,6 +85,7 @@ int frame_drv_init(int x, int y, drv_type type)
         else
         {
             frame_drv_type = dr_ws2811;
+            frame_drv_state = ds_active;
             result = 1;
         }
         break;
@@ -95,6 +100,9 @@ int frame_drv_init(int x, int y, drv_type type)
 int frame_drv_render(raster_t * raster)
 {
     pixel_t    *cur_pixel;
+
+    frame_drv_wake();
+
     switch(frame_drv_type)
     {
     case dr_term:
@@ -259,6 +267,45 @@ int frame_drv_render(raster_t * raster)
 #endif
     }
     return 1;
+}
+
+/**
+ * Put display to sleep
+ */
+void frame_drv_standby()
+{
+    switch(frame_drv_type)
+    {
+#ifdef WS2811_LIB
+    case dr_ws2811:
+        if (frame_drv_state == ds_active)
+        {
+            ws2811_fini(&ws2811_strip);
+            system("echo 0 > /sys/class/gpio/gpio23/value");
+            frame_drv_state = ds_sleep;
+        }
+        break;
+#endif
+    }
+}
+
+void frame_drv_wake()
+{
+    switch(frame_drv_type)
+    {
+#ifdef WS2811_LIB
+    case dr_ws2811:
+        if (frame_drv_state == ds_sleep)
+        {
+            frame_drv_state = ds_active;
+            system("echo 1 > /sys/class/gpio/gpio23/value");
+            frame_sleep(1000);
+            ws2811_init(&ws2811_strip);
+            //ws2811_render(&ws2811_strip);
+        }
+        break;
+#endif
+    }
 }
 
 int frame_drv_shutdown()

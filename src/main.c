@@ -21,6 +21,7 @@
 #include "frame_buffer.h"
 #include "image_util.h"
 #include "pos.h"
+#include "button.h"
 #include "input.h"
 #include "http_srv.h"
 #include "sprites.h"
@@ -75,11 +76,15 @@ const struct _game games[]=
 #define SCR_WIDTH 15
 #define SCR_HEIGHT 30
 
+#define SCREEN_SAVER_TIME 1 // minutes
+
 void clear_down();
 void sig_handler(int sig);
 void parseargs(int argc, char **argv);
 
 drv_type option_display_type=dr_none;
+
+uint8_t  terminalInput=0;
 
 int main(int argc, char *argv[])
 {
@@ -95,18 +100,26 @@ int main(int argc, char *argv[])
 
     uint16_t    update_scr=0;
 
+    systime     screenSaverTimeout;
+
     srand(0);
 
     config_init(NULL);
 
-    in_init();
+    parseargs(argc, argv);
+
+
+    button_init();
+    if(terminalInput)
+    {
+        in_init();
+    }
     http_init();
 
     signal (SIGTERM,sig_handler);
     signal (SIGINT,sig_handler);
     signal (SIGHUP,sig_handler);
 
-    parseargs(argc, argv);
 
     if(option_display_type == dr_none)
     {
@@ -128,6 +141,8 @@ int main(int argc, char *argv[])
 
     frame_drv_init(SCR_WIDTH, SCR_HEIGHT, option_display_type);
 
+    screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
+
     while(1)
     {
         switch(menu_state)
@@ -146,6 +161,7 @@ int main(int argc, char *argv[])
             menu_state = 1;
         case 1:
             // update selector
+            screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
             clear_raster(selector);
             paste_sprite(selector, &cursor, (pos_t){0,2+counter * 6});
             update_scr = 1;
@@ -182,6 +198,11 @@ int main(int argc, char *argv[])
                 frame_sleep(50);
                 break;
             }
+        }
+        if(alarm_expired(screenSaverTimeout))
+        {
+            cancel_alarm(&screenSaverTimeout);
+            frame_drv_standby();
         }
         if(update_scr)
         {
@@ -221,7 +242,10 @@ void sig_handler(int sig)
 void clear_down()
 {
     frame_drv_shutdown();
-    in_close();
+    if(terminalInput)
+    {
+        in_close();
+    }
     http_shutdown();
     frame_sleep(100);
     config_close();
@@ -232,7 +256,7 @@ void parseargs(int argc, char **argv)
     int c;
     while(1)
     {
-        c = getopt (argc, argv, "hwt");
+        c = getopt (argc, argv, "hwti");
         if(c == -1)
         {
             break;
@@ -249,6 +273,7 @@ void parseargs(int argc, char **argv)
                     "-w      - Display on LED matrix (DISABLED)\n"
 #endif
                     "-t      - Display in Terminal\n"
+                    "-i      - Enable terminal input (enabled with -t)\n"
                     );
             break;
         case 'w':
@@ -256,6 +281,10 @@ void parseargs(int argc, char **argv)
             break;
         case 't':
             option_display_type = dr_term;
+            terminalInput = 1;
+            break;
+        case 'i':
+            terminalInput = 1;
             break;
         }
     }
