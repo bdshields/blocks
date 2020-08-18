@@ -20,7 +20,7 @@
 
 #include "html.h"
 #include "utils.h"
-#include "input.h"
+#include "button.h"
 #include "http_session.h"
 #include "json.h"
 #include "scoring.h"
