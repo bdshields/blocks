@@ -10,7 +10,7 @@
 #include "frame_drv.h"
 #include "image_util.h"
 #include "colours.h"
-#include "input.h"
+#include "button.h"
 #include "pos.h"
 #include "utils.h"
 

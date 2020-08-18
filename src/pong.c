@@ -11,7 +11,7 @@
 #include "pong_sprites.h"
 #include "utils.h"
 #include "pos.h"
-#include "input.h"
+#include "button.h"
 #include "image_util.h"
 #include "colours.h"
 #include "frame_drv.h"

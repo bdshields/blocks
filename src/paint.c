@@ -8,9 +8,10 @@
 #include "frame_drv.h"
 #include "frame_buffer.h"
 #include "colours.h"
-#include "input.h"
+#include "button.h"
 #include "image_util.h"
 #include "pos.h"
+#include "utils.h"
 
 /**
  *        #
@@ -37,6 +38,11 @@ const raster_t paint_prush = {
     .image = {PX_PURPL}
 };
 
+const raster_t paint_cursor = {
+    .x_max = 1,
+    .y_max = 1,
+    .image = {PX_GREEN}
+};
 
 raster_t *paint_option(void)
 {
@@ -46,12 +52,18 @@ raster_t *paint_option(void)
 void paint_run(uint16_t x, uint16_t y)
 {
     raster_t        *canvas;
+    raster_t        *screen;
     user_input_t    button;
     pos_t           pos_brush={0,0};
     uint16_t    update_scr=1;
+    uint16_t    mode;
 
     canvas = fb_allocate(x, y);
+    screen = fb_allocate(x, y);
     clear_raster(canvas);
+    clear_raster(screen);
+
+    mode = 0;
     while(1)
     {
         button = in_get_bu();
@@ -89,14 +101,38 @@ void paint_run(uint16_t x, uint16_t y)
             }
             update_scr = 1;
             break;
+        case bu_a:
+            mode = 1;
+            update_scr = 1;
+            break;
+        case bu_b:
+            mode = 0;
+            update_scr = 1;
+            break;
         case bu_start:
             goto exit;
         }
         if(update_scr)
         {
-            paste_sprite(canvas, &paint_prush, pos_brush);
-            frame_drv_render(canvas);
+            clear_raster(screen);
+            if (mode == 1)
+            {
+                // brush down
+                paste_sprite(canvas, &paint_prush, pos_brush);
+                paste_sprite(screen, canvas, (pos_t){0,0});
+            }
+            else
+            {
+                //cursor
+                paste_sprite(screen, canvas, (pos_t){0,0});
+                paste_sprite(screen, &paint_cursor, pos_brush);
+            }
+            frame_drv_render(screen);
             update_scr = 0;
+        }
+        else
+        {
+            frame_sleep(50);
         }
     }
 exit:
