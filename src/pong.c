@@ -90,11 +90,11 @@ void pong_run(uint16_t x, uint16_t y)
         switch(state)
         {
         case ps_init_game:
-            pos_player[1] = (pos_t){x/2,2};     // Top player
-            pos_player[0] = (pos_t){x/2,y-3};   // Bottom player
+            pos_player[1] = (pos_t){2,y/2};     // Top player
+            pos_player[0] = (pos_t){x-3,y/2};   // Bottom player
             who_won = 0;
-            ball_x = x/2;
-            ball_y = y-4;
+            ball_x = x-4;
+            ball_y = y/2;
             cancel_alarm(&ball_tmr);
             score_set(0,0);
             score_set(1,0);
@@ -109,8 +109,8 @@ void pong_run(uint16_t x, uint16_t y)
                 // Top player missed ball, bottom player won
                 who_won = 0;
                 score_adjust(0,5);
-                ball_x = x/2;
-                ball_y = y-4;
+                ball_x = x-4;
+                ball_y = y/2;
             }
             else
             {
@@ -119,20 +119,20 @@ void pong_run(uint16_t x, uint16_t y)
                 {
                     who_won = 1;
                     score_adjust(1,5);
-                    ball_x = x/2;
-                    ball_y = 3;
+                    ball_x = 3;
+                    ball_y = y/2;
                 }
                 else
                 {
                     // Only one player
                     who_won = 0;
-                    ball_x = x/2;
-                    ball_y = y-4;
+                    ball_x = x-4;
+                    ball_y = y/2;
                 }
             }
             // reset player positions
-            pos_player[1] = (pos_t){x/2,2};     // Top player
-            pos_player[0] = (pos_t){x/2,y-3};   // Bottom player
+            pos_player[1] = (pos_t){2,y/2};     // Top player
+            pos_player[0] = (pos_t){x-3,y/2};   // Bottom player
 
             update_scr = 1;
             state = ps_start_wait;
@@ -140,13 +140,13 @@ void pong_run(uint16_t x, uint16_t y)
         case ps_start_match:
             if(who_won)
             {
-                ball_angle = random_angle(M_PI * 0.9, M_PI * 1.1);
+                ball_angle = random_angle(M_PI * 0.4, M_PI * 0.6);
             }
             else
             {
-                ball_angle = random_angle(-(M_PI * 0.1), M_PI * 0.1);
+                ball_angle = random_angle((M_PI * 1.4), M_PI * 1.6);
             }
-            ball_tmr = set_alarm(BALL_RATE / y);
+            ball_tmr = set_alarm(BALL_RATE / x);
             pong_calc_increments(ball_angle, &ball_inc_x, &ball_inc_y);
             update_scr = 1;
             state = ps_none;
@@ -162,32 +162,32 @@ void pong_run(uint16_t x, uint16_t y)
             ball_y += ball_inc_y;
 
             // Check walls
-            if(! (roundf(ball_x) < (x-1)))
+            if(! (roundf(ball_y) < (y-1)))
             {
-                // Contact right side
-                if(ball_inc_x > 0)
+                // Contact bottom side
+                if(ball_inc_y > 0)
                 {
                     // If heading into wall, bounce off it
-                    ball_angle = -ball_angle + random_angle(-0.05, 0.05);
+                    ball_angle = M_PI-ball_angle + random_angle(-0.05, 0.05);
                     update_inc = 1;
                 }
             }
-            if(! (roundf(ball_x) > 0))
+            if(! (roundf(ball_y) > 0))
             {
-                if(ball_inc_x < 0)
+                if(ball_inc_y < 0)
                 {
                     // If heading into wall, bounce off it
-                    ball_angle = -ball_angle + random_angle(-0.05, 0.05);
+                    ball_angle = M_PI-ball_angle + random_angle(-0.05, 0.05);
                     update_inc = 1;
                 }
             }
 
             // Ball goes out of play
-            if(! (roundf(ball_y) < (y-1)))
+            if(! (roundf(ball_x) < (x-1)))
             {
                 state = ps_end_match;
             }
-            if(! (roundf(ball_y) > 0))
+            if(! (roundf(ball_x) > 0))
             {
                 if(num_players == 2)
                 {
@@ -196,7 +196,7 @@ void pong_run(uint16_t x, uint16_t y)
                 else
                 {
                     // one player, so bounce from the top
-                    ball_angle = M_PI-ball_angle+random_angle(-0.05, 0.05);
+                    ball_angle = -ball_angle+random_angle(-0.05, 0.05);
                     score_adjust(0,1);
                     update_inc = 1;
                 }
@@ -206,21 +206,21 @@ void pong_run(uint16_t x, uint16_t y)
             // Top Player
             if(num_players == 2)
             {
-                if(roundf(ball_y) == (pos_player[1].y + 1))
+                if(roundf(ball_x) == (pos_player[1].x + 1))
                 {
-                    if((roundf(ball_x) >= pos_player[1].x) && (roundf(ball_x) < (pos_player[1].x + pong_paddle.x_max)))
+                    if((roundf(ball_y) >= pos_player[1].y) && (roundf(ball_y) < (pos_player[1].y + pong_paddle.y_max)))
                     {
-                        ball_angle = M_PI-ball_angle+random_angle(-0.05, 0.05);
+                        ball_angle = -ball_angle+random_angle(-0.05, 0.05);
                         update_inc = 1;
                     }
                 }
             }
             // Bottom player
-            if(roundf(ball_y) == (pos_player[0].y - 1))
+            if(roundf(ball_x) == (pos_player[0].x - 1))
             {
-                if((roundf(ball_x) >= pos_player[0].x) && (roundf(ball_x) < (pos_player[0].x + pong_paddle.x_max)))
+                if((roundf(ball_y) >= pos_player[0].y) && (roundf(ball_y) < (pos_player[0].y + pong_paddle.y_max)))
                 {
-                    ball_angle = M_PI-ball_angle+random_angle(-0.05, 0.05);
+                    ball_angle = -ball_angle+random_angle(-0.05, 0.05);
                     update_inc = 1;
                 }
             }
@@ -257,28 +257,46 @@ void pong_run(uint16_t x, uint16_t y)
         {
             int16_t player;
             player = button.user-1;
+
+            // Translate button direction for player 2
+            if(button.user == 2)
+            {
+                switch(button.button)
+                {
+                case bu_right:
+                    button.button = bu_down;
+                    break;
+                case bu_left:
+                    button.button = bu_up;
+                    break;
+                }
+            }
+
+
             switch(button.button)
             {
-            case bu_left:
-                if(pos_player[player].x > 0)
+            case bu_up:
+            case bu_right:
+                if(pos_player[player].y > 0)
                 {
-                    pos_player[player].x--;
+                    pos_player[player].y--;
                     if((state == ps_start_wait)&&(who_won == player))
                     {
                         // move the ball also if attached to player
-                        ball_x--;
+                        ball_y--;
                     }
                     update_scr = 1;
                 }
                 break;
-            case bu_right:
-                if((pos_player[player].x + pong_paddle.x_max) < (game_area->x_max))
+            case bu_down:
+            case bu_left:
+                if((pos_player[player].y + pong_paddle.y_max) < (game_area->y_max))
                 {
-                    pos_player[player].x++;
+                    pos_player[player].y++;
                     if((state == ps_start_wait)&&(who_won == player))
                     {
                         // move the ball also if attached to player
-                        ball_x++;
+                        ball_y++;
                     }
                     update_scr = 1;
                 }
@@ -326,3 +344,5 @@ float random_angle(float min, float max)
 
     return angle;
 }
+
+

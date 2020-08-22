@@ -23,8 +23,8 @@ const raster_t pong_logo = {
 
 
 const raster_t pong_paddle = {
-        .x_max = 4,
-        .y_max = 1,
+        .x_max = 1,
+        .y_max = 4,
         .image = {
                 PX_PURPL,PX_YELLO,PX_YELLO,PX_PURPL
         }

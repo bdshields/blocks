@@ -73,8 +73,8 @@ const struct _game games[]=
 
 #define NUM_GAMES 5
 
-#define SCR_WIDTH 15
-#define SCR_HEIGHT 30
+#define SCR_WIDTH 30
+#define SCR_HEIGHT 15
 
 #define SCREEN_SAVER_TIME 1 // minutes
 
@@ -131,8 +131,8 @@ int main(int argc, char *argv[])
      * allocate our main raster object
      */
     raster = fb_allocate(SCR_WIDTH, SCR_HEIGHT);
-    options = fb_allocate(SCR_WIDTH - 3, SCR_HEIGHT);
-    selector = fb_allocate(1, SCR_HEIGHT);
+    options = fb_allocate(SCR_WIDTH, SCR_HEIGHT - 3);
+    selector = fb_allocate(SCR_WIDTH, 1);
 
     if(raster == NULL)
     {
@@ -151,11 +151,11 @@ int main(int argc, char *argv[])
             // draw menu
 
             clear_raster(options);
-            pos_selector = (pos_t){0,1};
+            pos_selector = (pos_t){0,0};
             for(counter = 0; counter<NUM_GAMES; counter ++)
             {
                 paste_sprite(options, games[counter].option(), pos_selector);
-                pos_selector.y += 6;
+                pos_selector.x += 6;
             }
             counter = 0;
             menu_state = 1;
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
             // update selector
             screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
             clear_raster(selector);
-            paste_sprite(selector, &cursor, (pos_t){0,2+counter * 6});
+            paste_sprite(selector, &cursor, (pos_t){2+counter * 6, 0});
             update_scr = 1;
             menu_state = 2;
             break;
@@ -171,14 +171,14 @@ int main(int argc, char *argv[])
             button = in_get_bu();
             switch(button.button)
             {
-            case bu_up:
+            case bu_left:
                 if(counter > 0)
                 {
                     counter --;
                     menu_state = 1;
                 }
                 break;
-            case bu_down:
+            case bu_right:
                 if(counter < (NUM_GAMES-1))
                 {
                     counter ++;
@@ -207,8 +207,8 @@ int main(int argc, char *argv[])
         if(update_scr)
         {
             clear_raster(raster);
-            paste_sprite(raster, options, (pos_t){3,0});
-            paste_sprite(raster, selector, (pos_t){1,0});
+            paste_sprite(raster, options, (pos_t){0,3});
+            paste_sprite(raster, selector, (pos_t){0,1});
             frame_drv_render(raster);
             update_scr = 0;
         }

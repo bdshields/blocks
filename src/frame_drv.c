@@ -23,9 +23,8 @@
 #define WS2811_MAX_POWER 5
 #define GPIO_PIN 12
 
-#define WS2811_MAX_WIDTH 15
-#define WS2811_STRIP_WIDTH 15
-#define WS2811_MAX_HEIGHT 30
+#define WS2811_MAX_WIDTH 30
+#define WS2811_MAX_HEIGHT 15
 
 
 
@@ -154,112 +153,75 @@ int frame_drv_render(raster_t * raster)
 #ifdef WS2811_LIB
     case dr_ws2811:
     {
-        int16_t    strip_start_x_dir[]={1,-1,1};
-        int16_t    strip_dir;
-        int16_t    raster_x;
-        int16_t    raster_y;
-        int16_t    min_x;     // Min value inclusive
-        int16_t    max_x;     // Max value inclusive
-        uint16_t    led_index;
-        int16_t     step_x=1;
-        int16_t     step_y=1;
-        int16_t     strip_index;
+        struct scan_step{
+            int repeat;
+            int x_step;
+            int y_step;
+        };
+        /**
+         * Iterates through the LED list in sequence starting at 0
+         * Multiple pre-fabricated LED pcb pannels are supported
+         *
+         * Raster dimensions
+         * 0,0  == Top Left Corner
+         */
+        // Coordinates of raster that map to first LED in chain
+        int16_t    raster_x = 0;
+        int16_t    raster_y = 14;
 
-        // Coordinates of raster that map to LED 0
-        raster_x = 0;
-        raster_y = 0;
+        int16_t    step_index;
+        int16_t    step_count;
+        int16_t    counter;
 
-        // Direction to step through raster
-        step_x=strip_start_x_dir[0];
-        step_y=1;
+        int16_t    led_index;
 
-        max_x = (1*WS2811_STRIP_WIDTH) -1;
-        min_x = (0*WS2811_STRIP_WIDTH);
+        // How to scan the raster
+        const struct scan_step    scan_directions[]={
+        {1,0,0},{14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1},{1,1,0},
+                {14,0,-1},{1,1,0},{14,0,1}
+        };
 
-        strip_dir = 1;
-        strip_index=1;
+        step_count = sizeof(scan_directions)/sizeof(struct scan_step);
+
+        step_index = 0;
+        counter = scan_directions[step_index].repeat;
 
         for(led_index=0; led_index<ws2811_strip.channel[0].count; led_index++)
         {
-#if 1
             // copy data from raster to LEDs
             cur_pixel = fb_get_pixel(raster,raster_x,raster_y);
             ws2811_strip.channel[0].leds[led_index] = (uint32_t)cur_pixel->red << 16
                                                                 | (uint32_t)cur_pixel->green << 8
                                                                 | (uint32_t)cur_pixel->blue << 0;
-            raster_x += step_x;
-            if(step_x == 1)
-            {
-                if(raster_x > max_x)
-                {
-                    raster_y += step_y;
-                    step_x = -1;
-                    raster_x += step_x;
-                }
-            }
-            else if(step_x == -1)
-            {
-                if(raster_x < min_x)
-                {
-                    raster_y += step_y;
-                    step_x = 1;
-                    raster_x += step_x;
-                }
-            }
-            if(step_y == 1)
-            {
-                if(raster_y == WS2811_MAX_HEIGHT)
-                {
-                    strip_index++;
-                    step_y = -1;
-                    min_x += (WS2811_STRIP_WIDTH * strip_dir);
-                    max_x += (WS2811_STRIP_WIDTH * strip_dir);
-                    raster_y += step_y;
-                    raster_x = strip_start_x_dir[strip_index] == 1 ? min_x : max_x;
-                    step_x = strip_start_x_dir[strip_index];
-                }
-            }
-            else if(step_y == -1)
-            {
-                if(raster_y < 0)
-                {
-                    strip_index++;
-                    step_y = 1;
-                    min_x += (WS2811_STRIP_WIDTH * strip_dir);
-                    max_x += (WS2811_STRIP_WIDTH * strip_dir);
-                    raster_y += step_y;
-                    raster_x = strip_start_x_dir[strip_index] == 1 ? min_x : max_x;
-                    step_x = strip_start_x_dir[strip_index];
-                }
-            }
 
-#else
-            // copy data from raster to LEDs
-            ws2811_strip.channel[0].leds[y] = (uint32_t)cur_pixel->red << 16
-                                                                | (uint32_t)cur_pixel->green << 8
-                                                                | (uint32_t)cur_pixel->blue << 0;
-            x ++;
-            if(x == raster->y_max)
+            // Get next step
+            counter --;
+            if(counter == 0)
             {
-                x = 0;
-                // adjust pointer ready for next scan in oposite direction
-                cur_pixel ++;
-                state ^= 0x01;
-            }
-            else
-            {
-                if(state & 0x01)
+                step_index ++;
+                if(step_index >= step_count)
                 {
-                    // downwards
-                    cur_pixel-= raster->x_max;
+                    break;
                 }
-                else
-                {
-                    // upwards
-                    cur_pixel += raster->x_max;
-                }
+                counter = scan_directions[step_index].repeat;
             }
-#endif
+            // Update raster coordinates
+            raster_x += scan_directions[step_index].x_step;
+            raster_y += scan_directions[step_index].y_step;
+
         }
         ws2811_render(&ws2811_strip);
         break;
