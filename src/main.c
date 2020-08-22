@@ -228,14 +228,21 @@ end:
 
 void sig_handler(int sig)
 {
-    switch(sig)
+    if((sig == SIGHUP) && terminalInput)
     {
-    case SIGTERM:   // Default kill signal
-    case SIGINT:    // Control-C signal
-    case SIGHUP:    // Hang up signal (close terminal)
         clear_down();
         exit (0);
-        break;
+    }
+    else
+    {
+        switch(sig)
+        {
+        case SIGTERM:   // Default kill signal
+        case SIGINT:    // Control-C signal
+            clear_down();
+            exit (0);
+            break;
+        }
     }
 }
 

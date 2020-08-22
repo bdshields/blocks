@@ -126,7 +126,6 @@ void pong_run(uint16_t x, uint16_t y)
                 {
                     // Only one player
                     who_won = 0;
-//                    score_adjust(1,5);
                     ball_x = x/2;
                     ball_y = y-4;
                 }
@@ -198,6 +197,7 @@ void pong_run(uint16_t x, uint16_t y)
                 {
                     // one player, so bounce from the top
                     ball_angle = M_PI-ball_angle+random_angle(-0.05, 0.05);
+                    score_adjust(0,1);
                     update_inc = 1;
                 }
             }

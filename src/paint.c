@@ -10,6 +10,7 @@
 #include "colours.h"
 #include "button.h"
 #include "image_util.h"
+#include "frame_buffer.h"
 #include "pos.h"
 #include "utils.h"
 
@@ -57,6 +58,7 @@ void paint_run(uint16_t x, uint16_t y)
     pos_t           pos_brush={0,0};
     uint16_t    update_scr=1;
     uint16_t    mode;
+    uint16_t    erase = 0;
 
     canvas = fb_allocate(x, y);
     screen = fb_allocate(x, y);
@@ -102,10 +104,12 @@ void paint_run(uint16_t x, uint16_t y)
             update_scr = 1;
             break;
         case bu_a:
-            mode = 1;
+            // flip the mode
+            mode = mode == 0;
             update_scr = 1;
             break;
         case bu_b:
+            erase = 1;
             mode = 0;
             update_scr = 1;
             break;
@@ -123,9 +127,20 @@ void paint_run(uint16_t x, uint16_t y)
             }
             else
             {
-                //cursor
-                paste_sprite(screen, canvas, (pos_t){0,0});
-                paste_sprite(screen, &paint_cursor, pos_brush);
+                if (erase == 1)
+                {
+                    // erase pixel at current location
+                    fb_get_pixel(canvas,pos_brush.x,pos_brush.y)->flags &= ~R_VISIBLE;
+                    paste_sprite(screen, canvas, (pos_t){0,0});
+                    paste_sprite(screen, &paint_cursor, pos_brush);
+                    erase = 0;
+                }
+                else
+                {
+                    //cursor
+                    paste_sprite(screen, canvas, (pos_t){0,0});
+                    paste_sprite(screen, &paint_cursor, pos_brush);
+                }
             }
             frame_drv_render(screen);
             update_scr = 0;

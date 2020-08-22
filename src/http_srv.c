@@ -22,6 +22,7 @@
 #include "utils.h"
 #include "button.h"
 #include "http_session.h"
+#include "http_srv.h"
 #include "json.h"
 #include "scoring.h"
 
@@ -71,7 +72,7 @@ void *http_main(void* context)
     // Init socket
     http_socket = socket (PF_INET, SOCK_STREAM, 0);
     name.sin_family = AF_INET;
-    name.sin_port = htons (10000);
+    name.sin_port = htons (HTTP_SRV_PORT);
     name.sin_addr.s_addr = htonl (INADDR_ANY);
     while(bind (http_socket, (struct sockaddr *) &name, sizeof (name)) != 0)
     {

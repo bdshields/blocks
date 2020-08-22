@@ -8,6 +8,8 @@
 #ifndef SRC_HTTP_SRV_H_
 #define SRC_HTTP_SRV_H_
 
+#define HTTP_SRV_PORT 80
+
 void http_init(void);
 void http_shutdown(void);
 
