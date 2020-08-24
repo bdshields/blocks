@@ -8,7 +8,10 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/types.h>
 #include <pthread.h>
+#include <signal.h>
+#include <errno.h>
 #include <unistd.h>
 
 #include <stdio.h>
@@ -49,14 +52,21 @@ void http_shutdown(void)
 {
     systime timeout;
     http_close = 1; // request shutdown
-    set_alarm(5000);
-
+    timeout = set_alarm(5000);
+    fprintf(stderr,"http_srv: Requesting shutdown\n");
+    pthread_kill( http_thread, SIGUSR1);
     while((alarm_expired(timeout) == 0) && (http_close != 2))
     {
         // wait for shutdown complete
         frame_sleep(100);
     }
+    fprintf(stderr,"http_srv: Shutdown complete\n");
 
+}
+
+void http_usr1(int sig)
+{
+    return;
 }
 
 void *http_main(void* context)
@@ -69,6 +79,9 @@ void *http_main(void* context)
 
     struct sockaddr_in clientname;
     size_t size;
+
+    signal (SIGUSR1,http_usr1);
+
     // Init socket
     http_socket = socket (PF_INET, SOCK_STREAM, 0);
     name.sin_family = AF_INET;
@@ -85,7 +98,7 @@ void *http_main(void* context)
     }
 
     // setup listening
-    while(listen (http_socket, 1)!=0)
+    while(listen (http_socket, 50)!=0)
     {
         // Failed to listen, try again in 1 second
         if(http_close)
@@ -104,10 +117,19 @@ void *http_main(void* context)
         read_fd_set = active_fd_set;
         if (select (FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0)
         {
+            if(errno == EINTR)
+            {
+                fprintf(stderr,"http_srv: requested to shutdown\n");
+            }
+            else
+            {
+                fprintf(stderr,"http_srv: select returned error %d\n", errno);
+            }
             goto close_http;
         }
         if(http_close)
         {
+            fprintf(stderr,"http_srv: shutting down\n");
             goto close_http;
         }
 
@@ -124,18 +146,19 @@ void *http_main(void* context)
                     new = accept (http_socket,(struct sockaddr *) &clientname, &size);
                     if (new < 0)
                     {
-                        perror ("accept");
+                        fprintf(stderr,"http_srv: Error accepting new connection, Exiting\n");
                         http_close = 2;
                         exit (0);
                     }
-              //      fprintf (stderr, "Server: connect from host %s, port %hd.\n",  inet_ntoa (clientname.sin_addr), ntohs (clientname.sin_port));
                     FD_SET (new, &active_fd_set);
                 }
                 else
                 {
+                    int result;
                     /* Data arriving on an already-connected socket. */
-                    if (http_proc (i) < 0)
+                    if ((result = http_proc (i)) < 0)
                     {
+                        fprintf(stderr,"http_srv: Closing socket\n");
                         close (i);
                         FD_CLR (i, &active_fd_set);
                     }
@@ -159,6 +182,7 @@ close_http:
         close(http_socket);
     }
     http_close = 2;
+    fprintf(stderr,"http_srv: Exiting\n");
     return 0;
 }
 
@@ -184,7 +208,8 @@ int http_proc(int fd)
 
     if(length < 0)
     {
-        exit (0);
+        fprintf(stderr,"http_srv: Error (%d) reading from socket\n", errno);
+        return -1;
     }
     else if(length == 0)
     {

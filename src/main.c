@@ -102,11 +102,24 @@ int main(int argc, char *argv[])
 
     systime     screenSaverTimeout;
 
+
+    parseargs(argc, argv);
+
+    signal (SIGTERM,sig_handler);
+    signal (SIGINT,sig_handler);
+    if(terminalInput)
+    {
+        signal (SIGHUP,sig_handler);
+    }
+    else
+    {
+        signal (SIGHUP,SIG_IGN);
+    }
+
     srand(0);
 
     config_init(NULL);
 
-    parseargs(argc, argv);
 
 
     button_init();
@@ -116,9 +129,6 @@ int main(int argc, char *argv[])
     }
     http_init();
 
-    signal (SIGTERM,sig_handler);
-    signal (SIGINT,sig_handler);
-    signal (SIGHUP,sig_handler);
 
 
     if(option_display_type == dr_none)
@@ -191,6 +201,7 @@ int main(int argc, char *argv[])
                 {
                     games[counter].run(SCR_WIDTH, SCR_HEIGHT);
                     http_session_clrPlayers();
+                    screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
                     menu_state = 0;
                 }
                 break;
@@ -228,21 +239,15 @@ end:
 
 void sig_handler(int sig)
 {
-    if((sig == SIGHUP) && terminalInput)
+    switch(sig)
     {
+    case SIGTERM:   // Default kill signal
+    case SIGINT:    // Control-C signal
+    case SIGHUP:    // Hang-up
+        fprintf(stderr,"Received signal: %s\n", strsignal(sig));
         clear_down();
         exit (0);
-    }
-    else
-    {
-        switch(sig)
-        {
-        case SIGTERM:   // Default kill signal
-        case SIGINT:    // Control-C signal
-            clear_down();
-            exit (0);
-            break;
-        }
+        break;
     }
 }
 
