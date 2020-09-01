@@ -31,6 +31,22 @@ const raster_t *block_list[]={
         &tetris_7
 };
 
+const raster_t game_border = {
+    .x_max = 1,
+    .y_max = 1,
+    .image = {PX_YELLO}
+};
+
+const raster_t tetris_logo = {
+    .x_max = 4,
+    .y_max = 4,
+    .image = {PX_BLUE_,PX_BLUE_,PX_BLUE_,PX_BLUE_,
+            PX_PURPL,PX_RED__,PX_RED__,PX_ORANG,
+            PX_PURPL,PX_RED__,PX_RED__,PX_ORANG,
+            PX_PURPL,PX_PURPL,PX_ORANG,PX_ORANG
+    }
+};
+
 enum tetris_state {
     ts_none,
     ts_init_game,
@@ -44,10 +60,11 @@ enum tetris_state {
 
 #define TETRIS_GRAVITY 500
 #define TETRIS_GRAVITY_MIN 100
+#define TETRIS_GAME_WIDTH 10
 
 raster_t *tetris_option(void)
 {
-    return &tetris_2;
+    return &tetris_logo;
 }
 
 typedef struct tetris_delete_s{
@@ -75,6 +92,7 @@ void tetris_run(uint16_t x, uint16_t y)
     systime     gravity_update;
     uint16_t    gravity;
     pos_t       pos_block;
+    pos_t       pos_game;
 
     tetris_delete_t    remove_lines;
     systime     animate_tmr;
@@ -97,7 +115,9 @@ void tetris_run(uint16_t x, uint16_t y)
         score_init("Tetris", 1, "Player 1");
     }
 
-    dropped_blocks = fb_allocate(x, y);
+    dropped_blocks = fb_allocate(TETRIS_GAME_WIDTH, y);
+    pos_game = (pos_t){x/2 - 5, 0};
+
     game_area = fb_allocate(x, y);
     sprite_block = fb_allocate(4, 4);
     while(1)
@@ -116,7 +136,7 @@ void tetris_run(uint16_t x, uint16_t y)
 #endif
             clear_raster(sprite_block);
             paste_sprite(sprite_block, block_list[block_index],(pos_t){0,0});
-            pos_block = (pos_t){x/2 - 2, 0};
+            pos_block = (pos_t){pos_game.x/2 - 2, 0};
 
             touching = sprite_touching(dropped_blocks, sprite_block, pos_block);
 
@@ -157,7 +177,7 @@ void tetris_run(uint16_t x, uint16_t y)
             if(remove_lines.num_deleted)
             {
                 gravity_update = cancel_alarm(NULL);
-                pos_block = (pos_t){x/2 - 2, -10};
+                pos_block = (pos_t){pos_game.x/2 - 2, -10};
                 animate_tmr=set_alarm(100);
                 animate_counter = 0;
                 update_scr = 1;
@@ -255,10 +275,22 @@ void tetris_run(uint16_t x, uint16_t y)
         }
         if(update_scr)
         {
+            int16_t local_y;
             // Update screen
             clear_raster(game_area);
-            paste_sprite(game_area, dropped_blocks,(pos_t){0,0});
-            paste_sprite(game_area, sprite_block,pos_block);
+            paste_sprite(game_area, dropped_blocks,pos_game);
+            paste_sprite(game_area, sprite_block,pos_add(pos_game,pos_block));
+            // Add border
+            for(local_y=0; local_y<game_area->y_max; local_y++)
+            {
+                paste_sprite(game_area, &game_border,(pos_t){pos_game.x -1, local_y});
+            }
+            // Add border
+            for(local_y=0; local_y<game_area->y_max; local_y++)
+            {
+                paste_sprite(game_area, &game_border,(pos_t){pos_game.x + TETRIS_GAME_WIDTH, local_y});
+            }
+
             frame_drv_render(game_area);
             update_scr = 0;
         }

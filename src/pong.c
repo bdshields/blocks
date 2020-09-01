@@ -27,7 +27,7 @@ typedef enum pong_state_e{
     ps_start_match
 }pong_state_t;
 
-#define BALL_RATE 1500   // Milliseconds to traverse field
+#define BALL_RATE 700   // Milliseconds to traverse field
 
 raster_t *pong_option(void)
 {
@@ -168,7 +168,7 @@ void pong_run(uint16_t x, uint16_t y)
                 if(ball_inc_y > 0)
                 {
                     // If heading into wall, bounce off it
-                    ball_angle = M_PI-ball_angle + random_angle(-0.05, 0.05);
+                    ball_angle = M_PI-ball_angle + random_angle(-0.02, 0.02);
                     update_inc = 1;
                 }
             }
@@ -177,7 +177,7 @@ void pong_run(uint16_t x, uint16_t y)
                 if(ball_inc_y < 0)
                 {
                     // If heading into wall, bounce off it
-                    ball_angle = M_PI-ball_angle + random_angle(-0.05, 0.05);
+                    ball_angle = M_PI-ball_angle + random_angle(-0.02, 0.02);
                     update_inc = 1;
                 }
             }
@@ -196,7 +196,7 @@ void pong_run(uint16_t x, uint16_t y)
                 else
                 {
                     // one player, so bounce from the top
-                    ball_angle = -ball_angle+random_angle(-0.05, 0.05);
+                    ball_angle = -ball_angle+random_angle(-0.02, 0.02);
                     score_adjust(0,1);
                     update_inc = 1;
                 }
@@ -210,7 +210,7 @@ void pong_run(uint16_t x, uint16_t y)
                 {
                     if((roundf(ball_y) >= pos_player[1].y) && (roundf(ball_y) < (pos_player[1].y + pong_paddle.y_max)))
                     {
-                        ball_angle = -ball_angle+random_angle(-0.05, 0.05);
+                        ball_angle = -ball_angle+random_angle(-0.02, 0.02);
                         update_inc = 1;
                     }
                 }
@@ -220,7 +220,7 @@ void pong_run(uint16_t x, uint16_t y)
             {
                 if((roundf(ball_y) >= pos_player[0].y) && (roundf(ball_y) < (pos_player[0].y + pong_paddle.y_max)))
                 {
-                    ball_angle = -ball_angle+random_angle(-0.05, 0.05);
+                    ball_angle = -ball_angle+random_angle(-0.02, 0.02);
                     update_inc = 1;
                 }
             }
@@ -311,6 +311,11 @@ void pong_run(uint16_t x, uint16_t y)
                 goto exit;
                 break;
             }
+        }
+        if(http_session_countActive() == 0)
+        {
+            // no players in game.
+            goto exit;
         }
 
     }

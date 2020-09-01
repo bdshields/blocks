@@ -89,3 +89,11 @@ int16_t pos_equal(pos_t pos, int16_t x, int16_t y)
         return 0;
     }
 }
+
+pos_t pos_add(pos_t pos1, pos_t pos2)
+{
+    pos1.x += pos2.x;
+    pos1.y += pos2.y;
+
+    return pos1;
+}

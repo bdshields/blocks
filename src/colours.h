@@ -17,6 +17,7 @@
 
 #define PX_RED__ (pixel_t){255, 0, 0, R_VISIBLE}
 #define PX_GREEN (pixel_t){0, 255, 0, R_VISIBLE}
+#define PX_DIMGREEN (pixel_t){0, 128, 0, R_VISIBLE}
 #define PX_YELLO (pixel_t){255, 255, 0, R_VISIBLE}
 #define PX_PURPL (pixel_t){255, 0, 255, R_VISIBLE}
 #define PX_ORANG (pixel_t){255, 0xA5, 0, R_VISIBLE}

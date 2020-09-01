@@ -17,10 +17,10 @@
 #include "scoring.h"
 #include "http_session.h"
 
-#define ALIEN_HEADROOM 4  // Space above aliens
-#define ALIEN_FOOTER   8  // Space between aliens and cannon
+#define ALIEN_HEADROOM 0  // Space above aliens
+#define ALIEN_FOOTER   5  // Space between aliens and cannon
 #define ALIEN_SPACE 1     // Space inbetween
-#define ALIEN_SWING 4     // Lateral movement
+#define ALIEN_SWING 12     // Lateral movement
 #define ALIEN_MAX_ROWS 5
 
 #define CANNON_HEADROOM 1 // Space below cannon

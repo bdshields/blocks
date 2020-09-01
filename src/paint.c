@@ -151,6 +151,7 @@ void paint_run(uint16_t x, uint16_t y)
         }
     }
 exit:
+    fb_destroy(screen);
     fb_destroy(canvas);
 
 }
