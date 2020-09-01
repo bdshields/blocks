@@ -34,6 +34,8 @@
 #include "saver_ripples.h"
 #include "pong.h"
 #include "paint.h"
+#include "oscilloscope.h"
+#include "spectrum.h"
 
 
 struct _game{
@@ -69,9 +71,19 @@ const struct _game games[]=
         .option = paint_option,
         .min_players = 1,
     },
+    {
+        .run = osci_run,
+        .option = osci_option,
+        .min_players = 1,
+    },
+    {
+        .run = spec_run,
+        .option = spec_option,
+        .min_players = 1,
+    },
 };
 
-#define NUM_GAMES 5
+#define NUM_GAMES 7
 
 #define SCR_WIDTH 30
 #define SCR_HEIGHT 15
@@ -141,8 +153,8 @@ int main(int argc, char *argv[])
      * allocate our main raster object
      */
     raster = fb_allocate(SCR_WIDTH, SCR_HEIGHT);
-    options = fb_allocate(SCR_WIDTH, SCR_HEIGHT - 3);
-    selector = fb_allocate(SCR_WIDTH, 1);
+    options = fb_allocate(NUM_GAMES * 6, 5);
+    selector = fb_allocate(NUM_GAMES * 6, 1);
 
     if(raster == NULL)
     {
@@ -218,8 +230,10 @@ int main(int argc, char *argv[])
         if(update_scr)
         {
             clear_raster(raster);
-            paste_sprite(raster, options, (pos_t){0,3});
-            paste_sprite(raster, selector, (pos_t){0,1});
+            paste_sprite(raster, options, (pos_t){0,2});
+            paste_sprite(raster, selector, (pos_t){0,0});
+            paste_sprite(raster, options, (pos_t){-30,10});
+            paste_sprite(raster, selector, (pos_t){-30,8});
             frame_drv_render(raster);
             update_scr = 0;
         }
