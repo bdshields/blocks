@@ -11,7 +11,9 @@
 #include <alsa/asoundlib.h>
 
 
+#ifndef DEVICE
 #define DEVICE "hw:1,0"
+#endif
 
 #define ALSA_SRATE 48000
 #define ALSA_CHAN  2

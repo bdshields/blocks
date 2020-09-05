@@ -10,6 +10,7 @@
 
 
 #define PX_CLEAR (pixel_t){0,0,0,0}
+#define PX_BLANK (pixel_t){0,0,0, R_VISIBLE}
 
 #define PX_BLUE_ (pixel_t){0, 0, 255, R_VISIBLE}
 #define PX_WATERBLUE (pixel_t){0, 102, 255, R_VISIBLE}

@@ -105,7 +105,7 @@ uint16_t db_scaling[]=
 pixel_t spec_colours[][3]={
         // Column                       top                    peak
         {{255, 0, 230, R_VISIBLE},{255, 148, 239, R_VISIBLE},{255, 102, 240, R_VISIBLE}},
-        {PX_PURPL,                {255, 148, 239, R_VISIBLE},{255, 102, 240, R_VISIBLE}}
+        {PX_PURPL,                {255, 148, 239, R_VISIBLE},{255, 200, 30, R_VISIBLE}}
 };
 
 double mel_scale(double *input, int16_t length, int16_t center);

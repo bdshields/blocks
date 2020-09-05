@@ -40,10 +40,10 @@ const raster_t game_border = {
 const raster_t tetris_logo = {
     .x_max = 4,
     .y_max = 4,
-    .image = {PX_BLUE_,PX_BLUE_,PX_BLUE_,PX_BLUE_,
-            PX_PURPL,PX_RED__,PX_RED__,PX_ORANG,
-            PX_PURPL,PX_RED__,PX_RED__,PX_ORANG,
-            PX_PURPL,PX_PURPL,PX_ORANG,PX_ORANG
+    .image = {PX_CLEAR,PX_GREEN,PX_PURPL,PX_CLEAR,
+            PX_GREEN,PX_GREEN,PX_PURPL,PX_CLEAR,
+            PX_GREEN,PX_YELLO,PX_PURPL,PX_PURPL,
+            PX_YELLO,PX_YELLO,PX_YELLO,PX_CLEAR
     }
 };
 
