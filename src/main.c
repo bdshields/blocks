@@ -36,6 +36,7 @@
 #include "paint.h"
 #include "oscilloscope.h"
 #include "spectrum.h"
+#include "conways.h"
 
 
 struct _game{
@@ -57,11 +58,6 @@ const struct _game games[]=
         .min_players = 1,
     },
     {
-        .run = ripples_run,
-        .option = ripples_option,
-        .min_players = 1,
-    },
-    {
         .run = pong_run,
         .option = pong_option,
         .min_players = 1,
@@ -69,6 +65,11 @@ const struct _game games[]=
     {
         .run = paint_run,
         .option = paint_option,
+        .min_players = 1,
+    },
+    {
+        .run = conways_run,
+        .option = conways_option,
         .min_players = 1,
     },
     {
@@ -81,9 +82,14 @@ const struct _game games[]=
         .option = spec_option,
         .min_players = 1,
     },
+    {
+        .run = ripples_run,
+        .option = ripples_option,
+        .min_players = 1,
+    },
 };
 
-#define NUM_GAMES 7
+#define NUM_GAMES 8
 
 #define SCR_WIDTH 30
 #define SCR_HEIGHT 15
@@ -101,7 +107,8 @@ uint8_t  terminalInput=0;
 int main(int argc, char *argv[])
 {
     uint16_t    menu_state=0;
-    uint16_t    counter;
+    int16_t     counter;
+    int16_t     selected;
     raster_t    *raster = NULL;
     raster_t    *options = NULL;
     raster_t    *selector;
@@ -156,6 +163,8 @@ int main(int argc, char *argv[])
     options = fb_allocate(NUM_GAMES * 6, 5);
     selector = fb_allocate(NUM_GAMES * 6, 1);
 
+
+
     if(raster == NULL)
     {
         goto end;
@@ -164,7 +173,8 @@ int main(int argc, char *argv[])
     frame_drv_init(SCR_WIDTH, SCR_HEIGHT, option_display_type);
 
     screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
-
+    counter = 0;
+    selected = 0;
     while(1)
     {
         switch(menu_state)
@@ -179,13 +189,12 @@ int main(int argc, char *argv[])
                 paste_sprite(options, games[counter].option(), pos_selector);
                 pos_selector.x += 6;
             }
-            counter = 0;
             menu_state = 1;
         case 1:
             // update selector
             screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
             clear_raster(selector);
-            paste_sprite(selector, &cursor, (pos_t){2+counter * 6, 0});
+            paste_sprite(selector, &cursor, (pos_t){2+selected * 6, 0});
             update_scr = 1;
             menu_state = 2;
             break;
@@ -194,24 +203,26 @@ int main(int argc, char *argv[])
             switch(button.button)
             {
             case bu_left:
-                if(counter > 0)
-                {
-                    counter --;
-                    menu_state = 1;
-                }
+                selected --;
+                menu_state = 1;
                 break;
             case bu_right:
-                if(counter < (NUM_GAMES-1))
-                {
-                    counter ++;
-                    menu_state = 1;
-                }
+                selected ++;
+                menu_state = 1;
+                break;
+            case bu_up:
+                selected -= 5;
+                menu_state = 1;
+                break;
+            case bu_down:
+                selected +=5;
+                menu_state = 1;
                 break;
             case bu_a:
             case bu_b:
                 if((http_session_countActive() >= games[counter].min_players) || (button.user >= games[counter].min_players))
                 {
-                    games[counter].run(SCR_WIDTH, SCR_HEIGHT);
+                    games[selected].run(SCR_WIDTH, SCR_HEIGHT);
                     http_session_clrPlayers();
                     screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
                     menu_state = 0;
@@ -220,6 +231,15 @@ int main(int argc, char *argv[])
             case bu_none:
                 frame_sleep(50);
                 break;
+            }
+
+            if(selected < 0)
+            {
+                selected=0;
+            }
+            else if(selected>=NUM_GAMES)
+            {
+                selected = NUM_GAMES-1;
             }
         }
         if(alarm_expired(screenSaverTimeout))
