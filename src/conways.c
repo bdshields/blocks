@@ -32,9 +32,9 @@ typedef enum _conway_lifeState{
 
 pixel_t cw_states[]={
         PX_BLANK,
-        PX_RED__,
-        PX_DIMGREEN,
-        PX_GREEN
+        PX_PURPL,
+        PX_LITEBLUE,
+        PX_WATERBLUE
 };
 
 
@@ -103,29 +103,24 @@ void conways_run(uint16_t x, uint16_t y)
 
 
         button = in_get_bu();
-        if(button.user == 1)
+        switch(button.button)
         {
-            switch(button.button)
-            {
-            case bu_left:
-                break;
-            case bu_right:
-                break;
-            case bu_down:
-                break;
-            case bu_a:
-                break;
-            case bu_b:
-                break;
-            case bu_start:
-                goto exit;
-                break;
-            }
-
-        }
-        else if(button.button == bu_none)
-        {
+        case bu_left:
+            break;
+        case bu_right:
+            break;
+        case bu_down:
+            break;
+        case bu_a:
+            break;
+        case bu_b:
+            break;
+        case bu_start:
+            goto exit;
+            break;
+        case bu_none:
             frame_sleep(10);
+            break;
         }
 
     }

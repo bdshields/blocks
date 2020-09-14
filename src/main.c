@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
                 break;
             case bu_a:
             case bu_b:
-                if((http_session_countActive() >= games[counter].min_players) || (button.user >= games[counter].min_players))
+                if((http_session_countActive() >= games[selected].min_players) || (button.user >= games[selected].min_players))
                 {
                     games[selected].run(SCR_WIDTH, SCR_HEIGHT);
                     http_session_clrPlayers();
