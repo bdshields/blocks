@@ -8,6 +8,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <pthread.h>
 #include <signal.h>
@@ -31,13 +32,13 @@
 
 #include "debug.h"
 
-#define DEBUG_LEVEL DBG_DEBUG
+#define DEBUG_LEVEL DBG_INFO
 
 pthread_t http_thread;
 
 void *http_main(void* context);
 int http_proc(int fd);
-char *http_parse_header(void);
+char * http_parse_header(uint16_t *len);
 
 uint16_t http_close;
 #define HTTP_RESP_SIZE 10000
@@ -90,6 +91,8 @@ void *http_main(void* context)
     name.sin_family = AF_INET;
     name.sin_port = htons (HTTP_SRV_PORT);
     name.sin_addr.s_addr = htonl (INADDR_ANY);
+
+    DEBUG("Starting Server\n");
     while(bind (http_socket, (struct sockaddr *) &name, sizeof (name)) != 0)
     {
         // Failed to set port, try again in 1 second
@@ -110,6 +113,8 @@ void *http_main(void* context)
         }
         frame_sleep(1000);
     }
+
+    DEBUG("Server Ready\n");
 
     FD_ZERO (&active_fd_set);
     FD_SET (http_socket, &active_fd_set);
@@ -153,6 +158,10 @@ void *http_main(void* context)
                         http_close = 2;
                         exit (0);
                     }
+                    else
+                    {
+                        DEBUG("New connection: %s:%hu\n", inet_ntoa(clientname.sin_addr), clientname.sin_port);
+                    }
                     FD_SET (new, &active_fd_set);
                 }
                 else
@@ -161,7 +170,7 @@ void *http_main(void* context)
                     /* Data arriving on an already-connected socket. */
                     if ((result = http_proc (i)) < 0)
                     {
-                        DEBUG("http_srv: Closing socket\n");
+                        DEBUG("Closing socket\n");
                         close (i);
                         FD_CLR (i, &active_fd_set);
                     }
@@ -221,12 +230,36 @@ int http_proc(int fd)
     else
     {
         // parse our message
+        uint16_t payload_len;
         char *verb;
         char *path;
+        char *form;
+
         buffer[length] = 0;
+        DEBUG("HTTP REQUEST:\n%s\n", buffer);
         verb = strtok(buffer," "); // Get Verb
         path = strtok(NULL," ");   // Get Path
         strtok(NULL,"\n");         // Drop the HTTP version
+        form = http_parse_header(&payload_len);
+        if((form + payload_len) > (buffer + length))
+        {
+            while((form + payload_len) > (buffer + length))
+            {
+                int more_read;
+                more_read = read (fd, buffer+length, HTTP_RESP_SIZE);
+                if(more_read > 0)
+                {
+                    DEBUG("Reading more...\n");
+                    length += more_read;
+                }
+                else if(more_read < 0){
+                    DEBUG("Read result %d, Error (%d)\n", more_read, errno);
+                    return -1;
+                }
+            }
+            buffer[length] = 0;
+            DEBUG("Payload:\n%s\n", form);
+        }
         if(strcmp("GET", verb) == 0)
         {
             if(strcmp("/", path) == 0)
@@ -316,9 +349,7 @@ int http_proc(int fd)
             if(strcmp("/player", path) == 0)
             {
                 player_status_t status={0};
-                char *form;
                 // skip header
-                form = http_parse_header();
                 json_parse_object(form, player_json_callback, &status);
                 if(status.action == 1)
                 {
@@ -418,8 +449,12 @@ int http_respond(int fd, uint16_t type, char *resource)
     return 0;
 }
 
-char * http_parse_header(void)
+/**
+ * return length of payload
+ */
+char * http_parse_header(uint16_t *len)
 {
+    uint16_t length = 0;
     char *key;
     char *value;
     while(1)
@@ -431,6 +466,14 @@ char * http_parse_header(void)
             break;
         }
         value  = strtok(NULL,"\n");
+        if(strcmp(key,"Content-Length") == 0)
+        {
+            length = strtol(value,NULL,10);
+        }
+    }
+    if(len)
+    {
+        *len = length;
     }
     key += 2;
     return key;

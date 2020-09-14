@@ -3,8 +3,14 @@
     <title>blocks</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1,user-scalable=0"/>
     <style>
-    body {
-        user-select:none;
+    .noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
     }
     .arrow_group {
         background: grey;
@@ -72,23 +78,23 @@
     </style>
     
   </head>
-  <body onload="runInit()" onbeforeunload="runExit()" >
-    <div class="arrow_group">
-        <figure id="up" class="arrow_button" style="left:50%;top:18%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
-        <figure id="left" class="arrow_button" style="left:18%;top:50%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
-        <figure id="right" class="arrow_button" style="left:82%;top:50%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
-        <figure id="down" class="arrow_button" style="left:50%;top:82%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
-        <div id="player" class="player" style="left:50%;top:50%;">?</div>
+  <body class="noselect" onload="runInit()" onbeforeunload="runExit()" >
+    <div class="arrow_group noselect">
+        <figure id="up" class="arrow_button noselect" style="left:50%;top:18%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+        <figure id="left" class="arrow_button noselect" style="left:18%;top:50%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+        <figure id="right" class="arrow_button noselect" style="left:82%;top:50%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+        <figure id="down" class="arrow_button noselect" style="left:50%;top:82%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+        <span id="player" class="player noselect" style="left:50%;top:50%;">?</span>
     </div>
-    <div class="action_group">
-        <figure id="a" class="action_button" style="left:26%;top:68%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
-        <figure id="b" class="action_button" style="left:74%;top:31%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+    <div class="action_group noselect">
+        <figure id="a" class="action_button noselect" style="left:26%;top:68%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+        <figure id="b" class="action_button noselect" style="left:74%;top:31%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
     </div>
-    <div class="option_group">
-        <figure id="start" class="option_button" style="left:70%;top:15%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
-        <figure id="select" class="option_button" style="left:70%;top:30%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+    <div class="option_group noselect">
+        <figure id="start" class="option_button noselect" style="left:70%;top:15%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
+        <figure id="select" class="option_button noselect" style="left:70%;top:30%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
     </div>
-    <div id="playerName" class="player" style="font-size: 4vw;left:45%;padding-top: 70%;"></div>
+    <span id="playerName" class="player  noselect" style="font-size: 4vw;left:45%;padding-top: 70%;"></span>
   </body>
   <script>
   var active_buttons=[];
