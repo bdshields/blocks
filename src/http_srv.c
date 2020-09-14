@@ -29,6 +29,9 @@
 #include "json.h"
 #include "scoring.h"
 
+#include "debug.h"
+
+#define DEBUG_LEVEL DBG_DEBUG
 
 pthread_t http_thread;
 
@@ -53,14 +56,14 @@ void http_shutdown(void)
     systime timeout;
     http_close = 1; // request shutdown
     timeout = set_alarm(5000);
-    fprintf(stderr,"http_srv: Requesting shutdown\n");
+    DEBUG("Requesting shutdown\n");
     pthread_kill( http_thread, SIGUSR1);
     while((alarm_expired(timeout) == 0) && (http_close != 2))
     {
         // wait for shutdown complete
         frame_sleep(100);
     }
-    fprintf(stderr,"http_srv: Shutdown complete\n");
+    DEBUG("Shutdown complete\n");
 
 }
 
@@ -119,17 +122,17 @@ void *http_main(void* context)
         {
             if(errno == EINTR)
             {
-                fprintf(stderr,"http_srv: requested to shutdown\n");
+                DEBUG("requested to shutdown\n");
             }
             else
             {
-                fprintf(stderr,"http_srv: select returned error %d\n", errno);
+                DEBUG("select returned error %d\n", errno);
             }
             goto close_http;
         }
         if(http_close)
         {
-            fprintf(stderr,"http_srv: shutting down\n");
+            DEBUG("shutting down\n");
             goto close_http;
         }
 
@@ -146,7 +149,7 @@ void *http_main(void* context)
                     new = accept (http_socket,(struct sockaddr *) &clientname, &size);
                     if (new < 0)
                     {
-                        fprintf(stderr,"http_srv: Error accepting new connection, Exiting\n");
+                        DEBUG("Error accepting new connection, Exiting\n");
                         http_close = 2;
                         exit (0);
                     }
@@ -158,7 +161,7 @@ void *http_main(void* context)
                     /* Data arriving on an already-connected socket. */
                     if ((result = http_proc (i)) < 0)
                     {
-                        fprintf(stderr,"http_srv: Closing socket\n");
+                        DEBUG("http_srv: Closing socket\n");
                         close (i);
                         FD_CLR (i, &active_fd_set);
                     }
@@ -182,7 +185,7 @@ close_http:
         close(http_socket);
     }
     http_close = 2;
-    fprintf(stderr,"http_srv: Exiting\n");
+    DEBUG("http_srv: Exiting\n");
     return 0;
 }
 
@@ -208,7 +211,7 @@ int http_proc(int fd)
 
     if(length < 0)
     {
-        fprintf(stderr,"http_srv: Error (%d) reading from socket\n", errno);
+        DEBUG("Error (%d) reading from socket\n", errno);
         return -1;
     }
     else if(length == 0)
