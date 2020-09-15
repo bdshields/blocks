@@ -27,7 +27,10 @@ typedef enum pong_state_e{
     ps_start_match
 }pong_state_t;
 
-#define BALL_RATE 700   // Milliseconds to traverse field
+                   /*null, 1player, 2player*/
+uint16_t ballSpeed[]={1100, 1100, 1400};
+
+#define BALL_RATE ballSpeed[num_players]   // Milliseconds to traverse field
 
 raster_t *pong_option(void)
 {
@@ -90,9 +93,9 @@ void pong_run(uint16_t x, uint16_t y)
         switch(state)
         {
         case ps_init_game:
-            pos_player[1] = (pos_t){2,y/2};     // Top player
-            pos_player[0] = (pos_t){x-3,y/2};   // Bottom player
-            who_won = 0;
+            pos_player[1] = (pos_t){2,y/2 -2};     // Left player
+            pos_player[0] = (pos_t){x-3,y/2 -2};   // Right player
+            who_won = 0;  // 0: Right, 1: Left
             ball_x = x-4;
             ball_y = y/2;
             cancel_alarm(&ball_tmr);
@@ -104,9 +107,9 @@ void pong_run(uint16_t x, uint16_t y)
         case ps_end_match:
             cancel_alarm(&ball_tmr);
             // who won
-            if(roundf(ball_y) <= 0)
+            if(roundf(ball_x) <= 0)
             {
-                // Top player missed ball, bottom player won
+                // Left player missed ball, right player won
                 who_won = 0;
                 score_adjust(0,5);
                 ball_x = x-4;
@@ -114,7 +117,7 @@ void pong_run(uint16_t x, uint16_t y)
             }
             else
             {
-                // Bottom player missed ball
+                // Right player missed ball
                 if(num_players == 2)
                 {
                     who_won = 1;
@@ -131,8 +134,8 @@ void pong_run(uint16_t x, uint16_t y)
                 }
             }
             // reset player positions
-            pos_player[1] = (pos_t){2,y/2};     // Top player
-            pos_player[0] = (pos_t){x-3,y/2};   // Bottom player
+            pos_player[1] = (pos_t){2,y/2 -2};     // Top player
+            pos_player[0] = (pos_t){x-3,y/2 -2};   // Bottom player
 
             update_scr = 1;
             state = ps_start_wait;
@@ -157,7 +160,7 @@ void pong_run(uint16_t x, uint16_t y)
         if(alarm_expired(ball_tmr))
         {
             uint16_t update_inc = 0;
-            ball_tmr = set_alarm(BALL_RATE / y);
+            ball_tmr = set_alarm(BALL_RATE / x);
             ball_x += ball_inc_x;
             ball_y += ball_inc_y;
 
@@ -183,11 +186,11 @@ void pong_run(uint16_t x, uint16_t y)
             }
 
             // Ball goes out of play
-            if(! (roundf(ball_x) < (x-1)))
+            if(! (roundf(ball_x) < (x)))
             {
                 state = ps_end_match;
             }
-            if(! (roundf(ball_x) > 0))
+            if(! (roundf(ball_x) >= 0))
             {
                 if(num_players == 2)
                 {
@@ -197,6 +200,8 @@ void pong_run(uint16_t x, uint16_t y)
                 {
                     // one player, so bounce from the top
                     ball_angle = -ball_angle+random_angle(-0.02, 0.02);
+                    // Keep ball in playing field
+                    ball_x = 0;
                     score_adjust(0,1);
                     update_inc = 1;
                 }
@@ -231,10 +236,6 @@ void pong_run(uint16_t x, uint16_t y)
                 update_inc = 0;
             }
             update_scr = 1;
-        }
-        else
-        {
-            frame_sleep(10);
         }
         if(update_scr)
         {
@@ -312,10 +313,16 @@ void pong_run(uint16_t x, uint16_t y)
                 break;
             }
         }
-        if(http_session_countActive() == 0)
-        {
-            // no players in game.
-            goto exit;
+        else{
+            switch(button.button)
+            {
+            case bu_start:
+                goto exit;
+                break;
+            case bu_none:
+                frame_sleep(2);
+                break;
+            }
         }
 
     }

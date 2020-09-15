@@ -94,6 +94,7 @@
         <figure id="start" class="option_button noselect" style="left:70%;top:15%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
         <figure id="select" class="option_button noselect" style="left:70%;top:30%" onmousedown="buttondown(this)" ontouchstart="touchdown(this)" onmouseup="buttonup(this)" ontouchend="touchup(this)"></figure>
     </div>
+    <span id="playerScore" class="player  noselect" style="font-size: 4vw;left:45%;padding-top: 60%;"></span>
     <span id="playerName" class="player  noselect" style="font-size: 4vw;left:45%;padding-top: 70%;"></span>
   </body>
   <script>
@@ -109,7 +110,7 @@
        var name = document.getElementById("playerName");
        name.innerText=playerName;
        updateStatus();
-       adjustTimer(10000);
+       adjustTimer(1000);
   }
   
   function touchdown(element){
@@ -155,8 +156,8 @@
             {
                 pending_buttons.push(button);
             }
-            setTimeout(addButton, 500, button);
-            adjustTimer(100);
+            setTimeout(addButton, 300, button);
+            adjustTimer(50);
         }
   }
   
@@ -180,7 +181,7 @@
         }
         if(active_buttons.length == 0)
         {
-            adjustTimer(10000);
+            adjustTimer(1000);
         }
   }
   
@@ -201,9 +202,16 @@
             })
             .then(function(data){
                 document.getElementById("player").innerText = data.player;
+                if(data.score == "-1"){
+                    document.getElementById("playerScore").innerText = "";
+                }
+                else{
+                    document.getElementById("playerScore").innerText = data.score;
+                }
             })
             .catch(function(){
                 document.getElementById("player").innerText = "...";
+                document.getElementById("playerScore").innerText = "";
                 adjustTimer(10000);
             });
   }
