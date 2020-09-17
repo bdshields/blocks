@@ -7,6 +7,7 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "image_util.h"
 #include "frame_buffer.h"
@@ -203,16 +204,95 @@ uint16_t sprite_can_rotate(raster_t *raster, raster_t *sprite, pos_t position, t
     uint16_t result = 0;
     struct check_rot_s details;
     details.position = position;
-    details.origin = (pos_t){sprite->x_max-1, sprite->y_max-1};
+    details.origin = sprite->center;
     details.rotation = rotate;
     sprite_parser(sprite,R_VISIBLE, rotated_cb, raster, &details, &result);
 
     return result == 0;
 }
 
+
+uint16_t transform_cb(pixel_t *pixel, uint16_t x, uint16_t y, void * param1, void * param2, void *param3)
+{
+    pos_t normal_pos;
+    struct check_rot_s *details;
+    raster_t *sprite;
+
+    details = (struct check_rot_s *)param2;
+    sprite = (raster_t *)param3;
+
+    // move subject to origin
+    normal_pos.x = (x << 1) - details->origin.x;
+    normal_pos.y = (y << 1) - details->origin.y;
+
+    normal_pos = pos_rotate(normal_pos, POS(0,0), details->rotation);
+
+    // move subject back into position
+    normal_pos.x = (normal_pos.x + sprite->center.x) >> 1;
+    normal_pos.y = (normal_pos.y + sprite->center.y) >> 1;
+
+
+    // copy pixel to destination
+    *fb_get_pixel(sprite, normal_pos.x, normal_pos.y) = *pixel;
+
+    return 1;
+}
 /**
  * Rotate a square raster
  */
+
+#if 1
+uint16_t sprite_transform(raster_t *sprite, transform_t rotate)
+{
+    struct check_rot_s details;
+    raster_t *tempRaster;
+    uint16_t   tempDim;
+    pos_t      max_rotated;
+
+
+    // make temp copy
+    tempRaster = fb_copy(sprite);
+    if(tempRaster == NULL)
+    {
+        return 0;
+    }
+
+
+    fb_clear(sprite);
+
+    // Origin of current sprite
+    details.origin = sprite->center;
+
+    // New origin of transformed sprite
+    sprite->center = pos_rotate(sprite->center, (pos_t){0,0}, rotate);
+    max_rotated = pos_rotate(POS(sprite->x_max, sprite->y_max), (pos_t){0,0}, rotate);
+    // Adjust dimensions
+    tempDim = sprite->x_max;
+    sprite->x_max = sprite->y_max;
+    sprite->y_max = tempDim;
+    // Adjust new origin to remain in visible quadrant.
+    if(max_rotated.x < 0)
+    {
+        sprite->center.x += (sprite->x_max-1)<<1;
+    }
+    if(max_rotated.y < 0)
+    {
+        sprite->center.y += (sprite->y_max-1)<<1;
+    }
+
+    details.rotation = rotate;
+
+
+
+    sprite_parser(tempRaster,R_VISIBLE, transform_cb, NULL, &details, sprite);
+
+    fb_destroy(tempRaster);
+
+
+
+    return 1;
+}
+#else
 uint16_t sprite_transform(raster_t *sprite, transform_t rotate)
 {
     uint16_t x;
@@ -252,5 +332,5 @@ uint16_t sprite_transform(raster_t *sprite, transform_t rotate)
     }
     return 1;
 }
-
+#endif
 

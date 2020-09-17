@@ -56,8 +56,11 @@ pos_t  pos_rotate(pos_t position, pos_t origin, transform_t rotate)
     // conduct matrix multiply
     pos_t output;
 
+    // move subject to origin
     position.x = (position.x << 1) - origin.x;
     position.y = (position.y << 1) - origin.y;
+
+    // conduct rotation
     switch(rotate)
     {
     case tr_rot_right:
@@ -72,15 +75,17 @@ pos_t  pos_rotate(pos_t position, pos_t origin, transform_t rotate)
         output = position;
         break;
     }
+
+    // move subject back into position
     output.x = (output.x + origin.x) >> 1;
     output.y = (output.y + origin.y) >> 1;
 
     return output;
 }
 
-int16_t pos_equal(pos_t pos, int16_t x, int16_t y)
+int16_t pos_equal(pos_t pos_1, pos_t pos_2)
 {
-    if((pos.x == x) && (pos.y == y))
+    if((pos_1.x == pos_2.x) && (pos_1.y == pos_2.y))
     {
         return 1;
     }
@@ -97,3 +102,12 @@ pos_t pos_add(pos_t pos1, pos_t pos2)
 
     return pos1;
 }
+
+pos_t pos_subtract(pos_t pos1, pos_t pos2)
+{
+    pos1.x -= pos2.x;
+    pos1.y -= pos2.y;
+
+    return pos1;
+}
+

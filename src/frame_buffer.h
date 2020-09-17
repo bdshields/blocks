@@ -9,6 +9,7 @@
 #define SRC_FRAME_BUFFER_H_
 
 #include <stdint.h>
+#include "pos.h"
 
 typedef struct pixel_s{
     uint8_t red;
@@ -28,6 +29,7 @@ typedef struct pixel_s{
 typedef struct raster_s{
     uint16_t    x_max;
     uint16_t    y_max;
+    origin_t   center; // origin of rotation
     uint16_t    flags;
     pixel_t     image[];
 }raster_t;
