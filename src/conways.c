@@ -86,7 +86,7 @@ void conways_run(uint16_t x, uint16_t y)
             animate_tmr = set_alarm(1000/CONWAYS_FPS);
 
 
-            clear_raster(game_area);
+            fb_clear(game_area);
             for(index = 0; index<(x*y); index++)
             {
                 game_area->image[index] = cw_states[data[generation][index]];

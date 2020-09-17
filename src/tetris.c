@@ -125,7 +125,7 @@ void tetris_run(uint16_t x, uint16_t y)
         switch(game_state)
         {
         case ts_init_game:  // Init Game
-            clear_raster(dropped_blocks);
+            fb_clear(dropped_blocks);
             score_set(0, 0);
 
         case ts_new_block:  // New block
@@ -277,7 +277,7 @@ void tetris_run(uint16_t x, uint16_t y)
         {
             int16_t local_y;
             // Update screen
-            clear_raster(game_area);
+            fb_clear(game_area);
             paste_sprite(game_area, dropped_blocks,pos_game);
             paste_sprite(game_area, sprite_block,pos_add(pos_game,pos_block));
             // Add border

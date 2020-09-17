@@ -48,10 +48,6 @@ uint16_t paste_sprite(raster_t *frame_buffer, raster_t *sprite, pos_t pos)
 }
 
 
-void clear_raster(raster_t *frame_buffer)
-{
-    memset(frame_buffer->image, 0, IMAGE_SIZE(frame_buffer->x_max, frame_buffer->y_max));
-}
 
 
 uint16_t pos_out_raster(raster_t *raster, pos_t pos)

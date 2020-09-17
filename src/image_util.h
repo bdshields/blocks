@@ -24,7 +24,6 @@ typedef uint16_t(*sp_cb)(pixel_t *pixel, uint16_t x, uint16_t y, void * param1, 
 
 
 uint16_t paste_sprite(raster_t *frame_buffer, raster_t *sprite, pos_t pos);
-void clear_raster(raster_t *frame_buffer);
 void sprite_parser(raster_t *sprite, uint16_t flag_mask, sp_cb callback_f, void *param1, void *param2, void * param3);
 uint16_t sprite_touching(raster_t *raster, raster_t *sprite, pos_t pos);
 uint16_t sprite_transform(raster_t *sprite, transform_t rotate);

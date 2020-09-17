@@ -70,6 +70,9 @@ static inline pixel_t *fb_get_pixel(raster_t * raster, uint16_t x, uint16_t y)
  * @return pointer to allocated raster
  */
 raster_t *fb_allocate(uint16_t x, uint16_t y);
+void fb_clear(raster_t *frame_buffer);
+raster_t *fb_copy(raster_t * source);
+
 void fb_destroy(raster_t* raster);
 
 

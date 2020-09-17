@@ -166,7 +166,7 @@ void spec_run(uint16_t x, uint16_t y)
 
         // Execute the DCT
         fftw_execute(p);
-        clear_raster(screen);
+        fb_clear(screen);
 
         abs_array(out, AUDIO_FFT/2);
 

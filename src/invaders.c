@@ -261,7 +261,7 @@ void invaders_run(uint16_t x, uint16_t y)
 
         if(update_scr)
         {
-            clear_raster(game_area);
+            fb_clear(game_area);
             alien_touch = sprite_touching(game_area, aliens, pos_alien);
             paste_sprite(game_area, aliens,pos_alien);
             cannon_touch = sprite_touching(game_area, &invader_cannon, pos_cannon);
@@ -301,7 +301,7 @@ uint16_t generate_aliens(raster_t * aliens)
     pos_t pos;
     uint16_t row_count;
     uint16_t alien_counter=0;
-    clear_raster(aliens);
+    fb_clear(aliens);
     pos.y = 0;
     row_count = 0;
 

@@ -239,7 +239,7 @@ void pong_run(uint16_t x, uint16_t y)
         }
         if(update_scr)
         {
-            clear_raster(game_area);
+            fb_clear(game_area);
             paste_sprite(game_area, &pong_paddle,pos_player[0]);
             if(num_players == 2)
             {

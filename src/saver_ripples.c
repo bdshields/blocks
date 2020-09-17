@@ -172,7 +172,7 @@ void ripples_run(uint16_t x, uint16_t y)
                     value[V(0)][index_y*x + index_x] = total;
                 }
             }
-            clear_raster(screen_area);
+            fb_clear(screen_area);
             for(index_y = 0; index_y < (x*y); index_y++)
             {
                 screen_area->image[index_y] = colourize(method, value[V(0)][index_y]);
