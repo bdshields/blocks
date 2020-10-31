@@ -38,10 +38,12 @@ typedef enum dir_e{
 //#define ORI_2_POS(_origin) (pos_t){0, 0}
 
 dir_t pos_is_adjacent(pos_t* location, pos_t* position);
-pos_t  pos_rotate(pos_t position, pos_t origin, transform_t rotate);
+pos_t  pos_rotate(pos_t position, transform_t rotate);
 int16_t pos_equal(pos_t pos_1, pos_t pos_2);
 pos_t pos_add(pos_t pos1, pos_t pos2);
 pos_t pos_subtract(pos_t pos1, pos_t pos2);
+pos_t move_posToOrigin(pos_t pos, origin_t origin);
+pos_t move_posFromOrigin(pos_t pos, origin_t origin);
 
 
 #endif /* SRC_POS_H_ */

@@ -81,6 +81,7 @@ pixel_t tetris_animate[] = {
 
 
 uint16_t tetris_check(raster_t *blocks, tetris_delete_t *details);
+pos_t getBlockPos(pos_t pos_block, raster_t *sprite);
 
 void tetris_run(uint16_t x, uint16_t y)
 {
@@ -119,7 +120,7 @@ void tetris_run(uint16_t x, uint16_t y)
     pos_game = (pos_t){x/2 - 5, 0};
 
     game_area = fb_allocate(x, y);
-    sprite_block = fb_allocate(4, 4);
+    sprite_block = NULL;
     while(1)
     {
         switch(game_state)
@@ -131,14 +132,15 @@ void tetris_run(uint16_t x, uint16_t y)
         case ts_new_block:  // New block
 #if 1
             block_index = rand() % 7;
+#elif 0
+            block_index = (block_index +1) %7;
 #else
-            block_index = 5;
+            block_index = 6;
 #endif
-            clear_raster(sprite_block);
-            paste_sprite(sprite_block, block_list[block_index],(pos_t){0,0});
-            pos_block = (pos_t){pos_game.x/2 - 2, 0};
+            sprite_block = fb_copy(block_list[block_index]);
+            pos_block = (pos_t){pos_game.x/2, 0};
 
-            touching = sprite_touching(dropped_blocks, sprite_block, pos_block);
+            touching = sprite_touching(dropped_blocks, sprite_block, getBlockPos(pos_block,sprite_block));
 
             gravity = TETRIS_GRAVITY;
             gravity_update = set_alarm(gravity);
@@ -168,7 +170,9 @@ void tetris_run(uint16_t x, uint16_t y)
             gravity_update = set_alarm(gravity);
             break;
         case ts_attach_block:
-            paste_sprite(dropped_blocks, sprite_block,pos_block);
+            paste_sprite(dropped_blocks, sprite_block,getBlockPos(pos_block,sprite_block));
+            fb_destroy(sprite_block);
+            sprite_block = NULL;
             points = tetris_check(dropped_blocks, &remove_lines);
             if(points > 0)
             {
@@ -279,7 +283,12 @@ void tetris_run(uint16_t x, uint16_t y)
             // Update screen
             fb_clear(game_area);
             paste_sprite(game_area, dropped_blocks,pos_game);
-            paste_sprite(game_area, sprite_block,pos_add(pos_game,pos_block));
+            if(sprite_block)
+            {
+                paste_sprite(game_area, sprite_block,pos_add(pos_game,getBlockPos(pos_block, sprite_block)));
+                //paste_sprite(game_area, &game_border,pos_add(pos_game,pos_block));
+            }
+
             // Add border
             for(local_y=0; local_y<game_area->y_max; local_y++)
             {
@@ -299,9 +308,9 @@ void tetris_run(uint16_t x, uint16_t y)
             frame_sleep(50);
         }
 
-        if(pos_block.y >= 0)
+        if(sprite_block && (pos_block.y >= 0))
         {
-            touching = sprite_touching(dropped_blocks, sprite_block, pos_block);
+            touching = sprite_touching(dropped_blocks, sprite_block, getBlockPos(pos_block, sprite_block));
         }
 
 
@@ -387,4 +396,11 @@ reset_count:
         }while(row_counter > 0);
     }
     return score;
+}
+
+pos_t getBlockPos(pos_t pos_block, raster_t *sprite)
+{
+    pos_t pos;
+    pos = pos_subtract(pos_block, ORI_2_POS(sprite->center));
+    return pos;
 }

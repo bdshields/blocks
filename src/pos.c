@@ -51,14 +51,10 @@ const int16_t left_rot[2][2]={{0, -1},
 const int16_t right_rot[2][2]={{0,  1},
                               {-1, 0}};
 
-pos_t  pos_rotate(pos_t position, pos_t origin, transform_t rotate)
+pos_t  pos_rotate(pos_t position, transform_t rotate)
 {
     // conduct matrix multiply
     pos_t output;
-
-    // move subject to origin
-    position.x = (position.x << 1) - origin.x;
-    position.y = (position.y << 1) - origin.y;
 
     // conduct rotation
     switch(rotate)
@@ -75,10 +71,6 @@ pos_t  pos_rotate(pos_t position, pos_t origin, transform_t rotate)
         output = position;
         break;
     }
-
-    // move subject back into position
-    output.x = (output.x + origin.x) >> 1;
-    output.y = (output.y + origin.y) >> 1;
 
     return output;
 }
@@ -111,3 +103,18 @@ pos_t pos_subtract(pos_t pos1, pos_t pos2)
     return pos1;
 }
 
+pos_t move_posToOrigin(pos_t pos, origin_t origin)
+{
+    // move subject to origin
+    pos.x = (pos.x << 1) - origin.x;
+    pos.y = (pos.y << 1) - origin.y;
+    return pos;
+}
+
+pos_t move_posFromOrigin(pos_t pos, origin_t origin)
+{
+    // move subject back into position
+    pos.x = (pos.x + origin.x) >> 1;
+    pos.y = (pos.y + origin.y) >> 1;
+    return pos;
+}
