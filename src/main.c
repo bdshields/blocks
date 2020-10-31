@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
         case 0:
             // draw menu
 
-            clear_raster(options);
+            fb_clear(options);
             pos_selector = (pos_t){0,0};
             for(counter = 0; counter<NUM_GAMES; counter ++)
             {
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
         case 1:
             // update selector
             screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
-            clear_raster(selector);
+            fb_clear(selector);
             paste_sprite(selector, &cursor, (pos_t){2+selected * 6, 0});
             update_scr = 1;
             menu_state = 2;
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
         }
         if(update_scr)
         {
-            clear_raster(raster);
+            fb_clear(raster);
             paste_sprite(raster, options, (pos_t){0,2});
             paste_sprite(raster, selector, (pos_t){0,0});
             paste_sprite(raster, options, (pos_t){-30,10});

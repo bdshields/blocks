@@ -62,8 +62,8 @@ void paint_run(uint16_t x, uint16_t y)
 
     canvas = fb_allocate(x, y);
     screen = fb_allocate(x, y);
-    clear_raster(canvas);
-    clear_raster(screen);
+    fb_clear(canvas);
+    fb_clear(screen);
 
     mode = 0;
     while(1)
@@ -118,7 +118,7 @@ void paint_run(uint16_t x, uint16_t y)
         }
         if(update_scr)
         {
-            clear_raster(screen);
+            fb_clear(screen);
             if (mode == 1)
             {
                 // brush down

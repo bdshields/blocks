@@ -81,7 +81,7 @@ void osci_run(uint16_t x, uint16_t y)
         {
             update_tmr = set_alarm(1000/OSC_FPS);
 
-            clear_raster(screen);
+            fb_clear(screen);
             plotPos = (pos_t){0,0};
             pastSample = 0;
 
