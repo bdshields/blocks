@@ -62,9 +62,13 @@ void clock_run(uint16_t x, uint16_t y)
     {
         current_time = time(NULL);
         localtime_r(&current_time, &broken_time);
-        if(((broken_time.tm_min == 59) && (broken_time.tm_sec > 55))
-                || ((broken_time.tm_min == 0) && (broken_time.tm_sec < 5))
-                || show_time)
+        if((broken_time.tm_min == 59) && (broken_time.tm_sec == 55))
+        {
+            timeout = set_alarm(10000);
+            show_time = 1;
+        }
+
+        if(show_time)
         {
             fb_clear(screen);
             strftime(time_string, 30, "%H", &broken_time);
@@ -99,6 +103,7 @@ void clock_run(uint16_t x, uint16_t y)
         }
         if (alarm_expired(timeout))
         {
+            cancel_alarm(&timeout);
             frame_drv_standby();
             show_time = 0;
         }
