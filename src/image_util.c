@@ -340,3 +340,4 @@ origin_t origin_transform(raster_t *sprite, transform_t rotate)
     }
     return new_origin;
 }
+

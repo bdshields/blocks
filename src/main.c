@@ -37,6 +37,7 @@
 #include "oscilloscope.h"
 #include "spectrum.h"
 #include "conways.h"
+#include "clock.h"
 
 
 struct _game{
@@ -87,9 +88,14 @@ const struct _game games[]=
         .option = ripples_option,
         .min_players = 1,
     },
+    {
+        .run = clock_run,
+        .option = clock_option,
+        .min_players = 1,
+    }
 };
 
-#define NUM_GAMES 8
+#define NUM_GAMES 9
 
 #define SCR_WIDTH 30
 #define SCR_HEIGHT 15
