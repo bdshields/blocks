@@ -36,6 +36,7 @@
 #include "paint.h"
 #include "oscilloscope.h"
 #include "spectrum.h"
+#include "spectrogram.h"
 #include "conways.h"
 #include "clock.h"
 
@@ -84,6 +85,11 @@ const struct _game games[]=
         .min_players = 1,
     },
     {
+        .run = specgram_run,
+        .option = specgram_option,
+        .min_players = 1,
+    },
+    {
         .run = ripples_run,
         .option = ripples_option,
         .min_players = 1,
@@ -95,7 +101,7 @@ const struct _game games[]=
     }
 };
 
-#define NUM_GAMES 9
+#define NUM_GAMES 10
 
 #define SCR_WIDTH 30
 #define SCR_HEIGHT 15

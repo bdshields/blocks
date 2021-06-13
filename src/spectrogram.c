@@ -13,21 +13,21 @@
 #include "image_util.h"
 #include "frame_buffer.h"
 #include "alsa_tools.h"
+#include "debug.h"
+
+#define DEBUG_LEVEL DBG_NONE
 
 // The Fastest Fourier Transform in the West
 #include <complex.h>
 #include <fftw3.h>
 #include <math.h>
 
+#include <stdlib.h>
 
-#define NOISE_DB 55
-
-#define PEAK_DECAY_RATE  1
-#define PEAK_DECAY_DELAY 9
 
 #define _1_DB (1.25)
 
-const raster_t spec_logo = {
+const raster_t specgram_logo = {
     .x_max = 5,
     .y_max = 5,
     .image = {PX_CLEAR,PX_CLEAR,PX_CLEAR,PX_CLEAR,PX_CLEAR,
@@ -39,20 +39,20 @@ const raster_t spec_logo = {
     }
 };
 
-raster_t *spec_option(void)
+raster_t *specgram_option(void)
 {
-    return &spec_logo;
+    return &specgram_logo;
 }
 
 
-#define AUDIO_FRAMES (2048)  // Frames grabbed from ALSA each round
-#define AUDIO_FFT_MULTI (2)  // Multiplier of AUDIO_FRAMES for FFT
+#define AUDIO_FRAMES (12000)  // Frames grabbed from ALSA each round
+#define AUDIO_FFT_MULTI (4)  // Multiplier of AUDIO_FRAMES for FFT
 #define AUDIO_FFT (AUDIO_FRAMES * AUDIO_FFT_MULTI)
 #define AUDIO_SAMPLERATE (ALSA_SRATE)
 
 #define FREQ_STEP ((float)(AUDIO_SAMPLERATE/2.0)/((float)(AUDIO_FFT)))
 
-uint16_t spec_freqs []=
+int32_t specgram_freqs []=
 {
         25,
         40,
@@ -71,7 +71,7 @@ uint16_t spec_freqs []=
         16000
 };
 
-uint16_t spec_calibration[]=
+uint16_t specgram_calibration[]=
 {
         8, 10, 10, 10, 10, 12, 13, 13, 13, 13, 13, 12, 12, 14, 2
 };
@@ -83,10 +83,10 @@ uint16_t spec_calibration[]=
 #define _map_2(_a) _a, _a
 #define _map_1(_a) _a
 
-uint16_t db_scaling[]=
+uint16_t db_scaling2[]=
 {
-        _map_5(0),
-        _map_2(1),
+        _map_1(0),
+        _map_1(1),
         _map_1(2),
         _map_1(3),
         _map_1(4),
@@ -97,37 +97,58 @@ uint16_t db_scaling[]=
         _map_1(9),
         _map_1(10),
         _map_1(11),
-        _map_2(12),
-        _map_2(13),
-        _map_5(14),
+        _map_1(12),
+        _map_1(13),
+        _map_1(14),
 };
 
-pixel_t spec_colours[][3]={
+pixel_t spec_colours2[][3]={
         // Column                       top                    peak
         {{255, 0, 230, R_VISIBLE},{255, 148, 239, R_VISIBLE},{255, 102, 240, R_VISIBLE}},
         {PX_PURPL,                {255, 148, 239, R_VISIBLE},{255, 200, 30, R_VISIBLE}}
 };
 
-double mel_scale(double *input, int16_t length, int16_t center);
+double mel_scale2(double *input, int32_t length, int32_t center);
 void abs_array(double *data, int32_t length);
+pixel_t colourize_spec(int16_t intensity);
 
 struct _peak_s{
     uint16_t value;
     int16_t  delay;
 };
 
-void spec_run(uint16_t x, uint16_t y)
+typedef int16_t sound_frame[AUDIO_FRAMES][2];
+
+void specgram_run(uint16_t x, uint16_t y)
 {
     raster_t        *screen;
     user_input_t    button;
     snd_pcm_t       *sndHandle;
     uint16_t        counter;
-    struct _peak_s  spec_peaks[y];
-    int16_t         sounddata[AUDIO_FFT_MULTI][AUDIO_FRAMES][2];
+
+    //int16_t         sounddata[AUDIO_FFT_MULTI][AUDIO_FRAMES][2];
+    sound_frame    *sounddata;
     uint16_t        fft_sequence = 0;  // variable to round robin through AUDIO_FFT_MULTI
     uint16_t        fft_count;
     uint16_t        in_counter;
     uint16_t        out_counter;
+
+    uint16_t        spec_data[y][x];
+    uint16_t        spec_index=0;
+
+    int32_t         frame_min = 1000000;
+    int32_t         frame_max = -1000000;
+
+    int32_t         min_value = 10;
+    int32_t         max_value = 50;
+
+    DEBUG("Starting\n");
+    sounddata = malloc(sizeof(sound_frame)*AUDIO_FFT_MULTI);
+    if (sounddata == NULL)
+    {
+        DEBUG("Failed to allocate buffer\n");
+        exit(1);
+    }
 
     // Data types from the fastest fourier transform in the west
     double *in, *out;
@@ -136,18 +157,23 @@ void spec_run(uint16_t x, uint16_t y)
     in = (double*) fftw_malloc(sizeof(double) * AUDIO_FFT);
     out = (double*) fftw_malloc(sizeof(double) * AUDIO_FFT);
 
+    if((in == NULL) || (out == NULL))
+    {
+        DEBUG("Failed to allocate FFT buffer\n");
+        exit (1);
+    }
+
+    DEBUG("Preparing\n");
+
     p = fftw_plan_r2r_1d(AUDIO_FFT, in, out, FFTW_REDFT10, FFTW_MEASURE);
 
-    memset(spec_peaks,0,y * sizeof(struct _peak_s));
-
+    DEBUG("Openning\n");
     sndHandle = alsa_open(DEVICE);
     screen = fb_allocate(x, y);
 
 
     while(1)
     {
-       // update_tmr = set_alarm(1000/OSC_FPS);
-
         alsa_read(sndHandle, sounddata[fft_sequence], AUDIO_FRAMES);
 
         // Increment
@@ -166,18 +192,19 @@ void spec_run(uint16_t x, uint16_t y)
 
         // Execute the DCT
         fftw_execute(p);
-        fb_clear(screen);
 
         abs_array(out, AUDIO_FFT/2);
 
-        for (counter=0; counter<15; counter++)
+        frame_min =  1000000;
+        frame_max = -1000000;
+        for (counter=1; counter<14; counter++)
         {
             int16_t     level;
             float       value;
 
             level = 0;
 
-            value = mel_scale(out, AUDIO_FFT/2, spec_freqs[counter]/FREQ_STEP);
+            value = mel_scale2(out, AUDIO_FFT/2, specgram_freqs[counter]/FREQ_STEP);
 
             // Log scale
             while(value > 1)
@@ -187,57 +214,53 @@ void spec_run(uint16_t x, uint16_t y)
             }
 
             // apply calibration
-            level -= spec_calibration[counter];
+           // level -= specgram_calibration[counter];
 
-            // Subtract baseline value
-            if(level > NOISE_DB)
+            // gather statistics
+            frame_min = level < frame_min ? level : frame_min;
+            frame_max = level > frame_max ? level : frame_max;
+
+            // restrict to range
+            if(level < min_value)
             {
-                level -= NOISE_DB;
+                level = min_value;
             }
-            else
+            if(level > max_value)
             {
-                level = 0;
-            }
-
-
-            // limit to what can be displayed
-            if(level > sizeof(db_scaling)/sizeof(db_scaling[0]))
-            {
-                level = sizeof(db_scaling)/sizeof(db_scaling[0]) - 1;
+                level = max_value;
             }
 
-            // dB per graphical division
-            level = db_scaling[level];
+            spec_data[14 - counter][spec_index] = level - min_value;
+
+        }
+        // Fix some dodg
+        spec_data[0][spec_index] = spec_data[1][spec_index];
+        spec_data[14][spec_index] = spec_data[13][spec_index];
 
 
-            // Maintain peaks
-            spec_peaks[counter].delay ++;
-            if(spec_peaks[counter].delay >= PEAK_DECAY_RATE)
-            {
-                spec_peaks[counter].delay = 0;
-            }
-            if((spec_peaks[counter].delay == 0) && (spec_peaks[counter].value > 0))
-            {
-                spec_peaks[counter].value --;
-            }
-            if(spec_peaks[counter].value < level)
-            {
-                spec_peaks[counter].value = level;
-                spec_peaks[counter].delay = -PEAK_DECAY_DELAY;
-            }
 
-            // Draw Bar
-            while(level >= 0)
-            {
-                *fb_get_pixel(screen, (counter*2), y - 1 -level) = spec_colours[1][0];
-                *fb_get_pixel(screen, (counter*2)+1, y - 1 -level) = spec_colours[1][0];
-                level --;
-            }
-            //Draw peaks
-            *fb_get_pixel(screen, (counter*2), y - 1 -spec_peaks[counter].value) = spec_colours[1][2];
-            *fb_get_pixel(screen, (counter*2) + 1, y - 1 -spec_peaks[counter].value) = spec_colours[1][2];
+        spec_index ++;
+        if (spec_index >= x)
+        {
+            spec_index=0;
+        }
+        fb_clear(screen);
+        for(counter = 0; counter < (x*y); counter++)
+        {
+            screen->image[counter] = colourize_spec(((uint16_t*)spec_data)[counter] * (8192 / (max_value - min_value)));
         }
         frame_drv_render(screen);
+
+
+        // update long running stats
+        min_value += (frame_min - min_value)>>3;
+        max_value += (frame_max - max_value)>>3;
+        if((max_value - min_value) < 20)
+        {
+            max_value = min_value + 20;
+        }
+
+        DEBUG("Min_value = (%d)%d, Max_value = (%d)%d, frame %d\n",frame_min,min_value, frame_max,max_value, (int32_t)spec_index);
 
 
         button = in_get_bu();
@@ -252,6 +275,7 @@ exit:
     fftw_destroy_plan(p);
     fftw_free(in);
     fftw_free(out);
+    free(sounddata);
 
     fb_destroy(screen);
     alsa_close(sndHandle);
@@ -265,9 +289,9 @@ exit:
  * @param center Calculate energy for value
  *
  */
-double mel_scale(double *input, int16_t length, int16_t center)
+double mel_scale2(double *input, int32_t length, int32_t center)
 {
-    uint16_t counter;
+    int32_t counter;
     float    window_start;
     float    window_end;
     double    result;
@@ -310,15 +334,107 @@ double mel_scale(double *input, int16_t length, int16_t center)
     return result;
 }
 
-void abs_array(double *data, int32_t length)
+pixel_t colourize_spec(int16_t intensity)
 {
-    int32_t counter;
-    for(counter = 0; counter< length; counter++)
+    int32_t value;
+    pixel_t colours;
+    int16_t red=0;
+    int16_t green=0;
+    int16_t blue=0;
+
+
+    value = intensity;
+
+    switch (2)
     {
-        if(*data < 0)
+    case 0:
+
+        value >>= 7;  // 0 -> 512
+
+
+        blue = value - 256 + 64;
+        if(blue > 255)
         {
-            *data = *data * (-1);
+            blue = 255;
         }
-        data++;
+        else if(blue < 0)
+        {
+            blue = 0;
+        }
+        green = -(value - 255 - 64);
+        if(green > 255)
+        {
+            green = 255;
+        }
+        else if(green < 0)
+        {
+            green = 0;
+        }
+
+        break;
+    case 1:
+
+        value >>= 7;  // 0 - 512
+
+
+        red = value - 256 + 64;
+        if(red > 255)
+        {
+            red = 255;
+        }
+        else if(red < 0)
+        {
+            red = 0;
+        }
+        blue = -(value - 255 - 64);
+        if(blue > 255)
+        {
+            blue = 255;
+        }
+        else if(blue < 0)
+        {
+            blue = 0;
+        }
+
+        break;
+    case 2:
+        value >>= 3;  // 0 -> 1024
+
+        red = value - (256 * 3);
+        if(red > 255)
+        {
+            red = 255;
+        }
+        else if(red < 0)
+        {
+            red = 0;
+        }
+
+        blue = value;
+        if(blue > 255)
+        {
+            blue = 255;
+        }
+        else if(blue < 0)
+        {
+            blue = 0;
+        }
+        green = (value - 255) / 2;
+        if(green > 255)
+        {
+            green = 255;
+        }
+        else if(green < 0)
+        {
+            green = 0;
+        }
+
+        break;
     }
+    colours.blue =  blue;
+    colours.green = green;
+    colours.red = red;
+    colours.flags = R_VISIBLE;
+    return colours;
 }
+
