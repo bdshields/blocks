@@ -104,6 +104,7 @@ void clock_run(uint16_t x, uint16_t y)
             {
                 cancel_alarm(&timeout);
                 frame_drv_standby();
+                update_scr = 0;
                 show_time = 0;
             }
             switch(button.button)
@@ -233,7 +234,7 @@ void clock_run(uint16_t x, uint16_t y)
                     }
                     else
                     {
-                        // revert to clock after 5 minutes
+                        cancel_alarm(&timeout);
                         counting = 0;
                         show_time = 1;
                     }
