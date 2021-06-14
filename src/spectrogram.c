@@ -45,8 +45,8 @@ raster_t *specgram_option(void)
 }
 
 
-#define AUDIO_FRAMES (12000)  // Frames grabbed from ALSA each round
-#define AUDIO_FFT_MULTI (4)  // Multiplier of AUDIO_FRAMES for FFT
+#define AUDIO_FRAMES (3000)  // Frames grabbed from ALSA each round
+#define AUDIO_FFT_MULTI (12)  // Multiplier of AUDIO_FRAMES for FFT
 #define AUDIO_FFT (AUDIO_FRAMES * AUDIO_FFT_MULTI)
 #define AUDIO_SAMPLERATE (ALSA_SRATE)
 
@@ -54,21 +54,21 @@ raster_t *specgram_option(void)
 
 int32_t specgram_freqs []=
 {
-        25,
-        40,
-        63,
-        100,
-        160,
         250,
-        400,
-        630,
-        1000,
-        1600,
-        2500,
-        4000,
-        6300,
-        10000,
-        16000
+        500,
+        750,
+       1000,
+       2000,
+       3000,
+       4000,
+       5000,
+       6000,
+       7000,
+       8000,
+       9000,
+      10000,
+      11000,
+      12000
 };
 
 uint16_t specgram_calibration[]=
@@ -197,7 +197,7 @@ void specgram_run(uint16_t x, uint16_t y)
 
         frame_min =  1000000;
         frame_max = -1000000;
-        for (counter=1; counter<14; counter++)
+        for (counter=0; counter<15; counter++)
         {
             int16_t     level;
             float       value;
@@ -229,13 +229,13 @@ void specgram_run(uint16_t x, uint16_t y)
             {
                 level = max_value;
             }
-
-            spec_data[14 - counter][spec_index] = level - min_value;
+            // store scaled value
+            spec_data[14 - counter][spec_index] = (level - min_value)  * (8192 / (max_value - min_value));
 
         }
         // Fix some dodg
-        spec_data[0][spec_index] = spec_data[1][spec_index];
-        spec_data[14][spec_index] = spec_data[13][spec_index];
+        //spec_data[0][spec_index] = spec_data[1][spec_index];
+        //spec_data[14][spec_index] = spec_data[13][spec_index];
 
 
 
@@ -247,7 +247,7 @@ void specgram_run(uint16_t x, uint16_t y)
         fb_clear(screen);
         for(counter = 0; counter < (x*y); counter++)
         {
-            screen->image[counter] = colourize_spec(((uint16_t*)spec_data)[counter] * (8192 / (max_value - min_value)));
+            screen->image[counter] = colourize_spec(((uint16_t*)spec_data)[counter]);
         }
         frame_drv_render(screen);
 
@@ -301,8 +301,8 @@ double mel_scale2(double *input, int32_t length, int32_t center)
 
     result = 0;
 
-    window_start = center / 1.7;
-    window_end = center * 1.7;
+    window_start = center / 1.1;
+    window_end = center * 1.1;
 
     tan_left = (1.0/((float)center-window_start));
     tan_right = (1.0/(window_end - (float)center));
@@ -398,9 +398,14 @@ pixel_t colourize_spec(int16_t intensity)
 
         break;
     case 2:
-        value >>= 3;  // 0 -> 1024
+        /*  |-------------------|
+         *   B>-------<GG>----<R
+         *
+         * */
+        value >>= 4;  // 0 -> 512
 
-        red = value - (256 * 3);
+        // Red start at 256 end 512
+        red = value - 256;
         if(red > 255)
         {
             red = 255;
@@ -409,8 +414,8 @@ pixel_t colourize_spec(int16_t intensity)
         {
             red = 0;
         }
-
-        blue = value;
+        // Blue Start 256 end 0
+        blue = (value - 256) * -1;
         if(blue > 255)
         {
             blue = 255;
@@ -419,10 +424,15 @@ pixel_t colourize_spec(int16_t intensity)
         {
             blue = 0;
         }
-        green = (value - 255) / 2;
+        // Green
+        green = value;
         if(green > 255)
         {
-            green = 255;
+            green = (value - 512) * -1;
+            if (green > 255)
+            {
+                green = 255;
+            }
         }
         else if(green < 0)
         {
