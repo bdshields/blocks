@@ -45,62 +45,32 @@ raster_t *specgram_option(void)
 }
 
 
-#define AUDIO_FRAMES (3000)  // Frames grabbed from ALSA each round
-#define AUDIO_FFT_MULTI (12)  // Multiplier of AUDIO_FRAMES for FFT
+#define AUDIO_FRAMES (6000)  // Frames grabbed from ALSA each round
+#define AUDIO_FFT_MULTI (1)  // Multiplier of AUDIO_FRAMES for FFT
 #define AUDIO_FFT (AUDIO_FRAMES * AUDIO_FFT_MULTI)
 #define AUDIO_SAMPLERATE (ALSA_SRATE)
 
 #define FREQ_STEP ((float)(AUDIO_SAMPLERATE/2.0)/((float)(AUDIO_FFT)))
 
-int32_t specgram_freqs []=
+int32_t specgram_freqs [][2]=
 {
-        250,
-        500,
-        750,
-       1000,
-       2000,
-       3000,
-       4000,
-       5000,
-       6000,
-       7000,
-       8000,
-       9000,
-      10000,
-      11000,
-      12000
+        {500, 250},
+       {1000, 250},
+       {1500, 250},
+       {2000, 250},
+       {2500, 250},
+       {3000, 250},
+       {4000, 500},
+       {5000, 500},
+       {6000, 500},
+       {7000, 500},
+       {8000, 500},
+       {9000, 500},
+      {10000, 500},
+      {11000, 500},
+      {12000, 500}
 };
 
-uint16_t specgram_calibration[]=
-{
-        8, 10, 10, 10, 10, 12, 13, 13, 13, 13, 13, 12, 12, 14, 2
-};
-
-// strength to vertical increment mapping
-#define _map_5(_a) _a, _a, _a, _a, _a
-#define _map_4(_a) _a, _a, _a, _a
-#define _map_3(_a) _a, _a, _a
-#define _map_2(_a) _a, _a
-#define _map_1(_a) _a
-
-uint16_t db_scaling2[]=
-{
-        _map_1(0),
-        _map_1(1),
-        _map_1(2),
-        _map_1(3),
-        _map_1(4),
-        _map_1(5),
-        _map_1(6),
-        _map_1(7),
-        _map_1(8),
-        _map_1(9),
-        _map_1(10),
-        _map_1(11),
-        _map_1(12),
-        _map_1(13),
-        _map_1(14),
-};
 
 pixel_t spec_colours2[][3]={
         // Column                       top                    peak
@@ -108,14 +78,10 @@ pixel_t spec_colours2[][3]={
         {PX_PURPL,                {255, 148, 239, R_VISIBLE},{255, 200, 30, R_VISIBLE}}
 };
 
-double mel_scale2(double *input, int32_t length, int32_t center);
+double window_scale(double *input, int32_t length, int32_t center, int32_t distance);
 void abs_array(double *data, int32_t length);
 pixel_t colourize_spec(int16_t intensity);
 
-struct _peak_s{
-    uint16_t value;
-    int16_t  delay;
-};
 
 typedef int16_t sound_frame[AUDIO_FRAMES][2];
 
@@ -134,13 +100,12 @@ void specgram_run(uint16_t x, uint16_t y)
     uint16_t        out_counter;
 
     uint16_t        spec_data[y][x];
-    uint16_t        spec_index=0;
 
     int32_t         frame_min = 1000000;
     int32_t         frame_max = -1000000;
 
-    int32_t         min_value = 10;
-    int32_t         max_value = 50;
+    float         min_value = 10;
+    float         max_value = 50;
 
     DEBUG("Starting\n");
     sounddata = malloc(sizeof(sound_frame)*AUDIO_FFT_MULTI);
@@ -204,7 +169,7 @@ void specgram_run(uint16_t x, uint16_t y)
 
             level = 0;
 
-            value = mel_scale2(out, AUDIO_FFT/2, specgram_freqs[counter]/FREQ_STEP);
+            value = window_scale(out, AUDIO_FFT/2, specgram_freqs[counter][0]/FREQ_STEP, specgram_freqs[counter][1]/FREQ_STEP);
 
             // Log scale
             while(value > 1)
@@ -212,9 +177,6 @@ void specgram_run(uint16_t x, uint16_t y)
                 level ++;
                 value /= _1_DB ;
             }
-
-            // apply calibration
-           // level -= specgram_calibration[counter];
 
             // gather statistics
             frame_min = level < frame_min ? level : frame_min;
@@ -230,7 +192,8 @@ void specgram_run(uint16_t x, uint16_t y)
                 level = max_value;
             }
             // store scaled value
-            spec_data[14 - counter][spec_index] = (level - min_value)  * (8192 / (max_value - min_value));
+            memmove(spec_data[14 - counter],spec_data[14 - counter] + 1, sizeof(int16_t)*(x-1));
+            spec_data[14 - counter][x-1] = (level - min_value)  * (8192 / (max_value - min_value));
 
         }
         // Fix some dodg
@@ -238,12 +201,6 @@ void specgram_run(uint16_t x, uint16_t y)
         //spec_data[14][spec_index] = spec_data[13][spec_index];
 
 
-
-        spec_index ++;
-        if (spec_index >= x)
-        {
-            spec_index=0;
-        }
         fb_clear(screen);
         for(counter = 0; counter < (x*y); counter++)
         {
@@ -253,14 +210,28 @@ void specgram_run(uint16_t x, uint16_t y)
 
 
         // update long running stats
-        min_value += (frame_min - min_value)>>3;
-        max_value += (frame_max - max_value)>>3;
-        if((max_value - min_value) < 20)
+        if(max_value < frame_max)
         {
-            max_value = min_value + 20;
+            max_value = frame_max;
+        }
+        else
+        {
+            max_value += ((float)frame_max - max_value) * 0.1;
+        }
+        if(min_value > frame_min)
+        {
+            min_value = frame_min;
+        }
+        else
+        {
+            min_value += ((float)frame_min - min_value) * 0.1;
+        }
+        if((max_value - min_value) < 10)
+        {
+            max_value = min_value + 10;
         }
 
-        DEBUG("Min_value = (%d)%d, Max_value = (%d)%d, frame %d\n",frame_min,min_value, frame_max,max_value, (int32_t)spec_index);
+        DEBUG("Min_value = (%d)%d, Max_value = (%d)%d\n",frame_min,(int32_t)min_value, frame_max,(int32_t)max_value);
 
 
         button = in_get_bu();
@@ -289,7 +260,7 @@ exit:
  * @param center Calculate energy for value
  *
  */
-double mel_scale2(double *input, int32_t length, int32_t center)
+double window_scale(double *input, int32_t length, int32_t center, int32_t distance)
 {
     int32_t counter;
     float    window_start;
@@ -301,8 +272,8 @@ double mel_scale2(double *input, int32_t length, int32_t center)
 
     result = 0;
 
-    window_start = center / 1.1;
-    window_end = center * 1.1;
+    window_start = center - distance;
+    window_end = center + distance;
 
     tan_left = (1.0/((float)center-window_start));
     tan_right = (1.0/(window_end - (float)center));
