@@ -80,7 +80,7 @@ pixel_t spec_colours2[][3]={
 
 double window_scale(double *input, int32_t length, int32_t center, int32_t distance);
 void abs_array(double *data, int32_t length);
-pixel_t colourize_spec(int16_t intensity);
+pixel_t colourize_spec(int16_t mode,int16_t intensity);
 
 
 typedef int16_t sound_frame[AUDIO_FRAMES][2];
@@ -91,7 +91,7 @@ void specgram_run(uint16_t x, uint16_t y)
     user_input_t    button;
     snd_pcm_t       *sndHandle;
     uint16_t        counter;
-
+    int16_t         colour_mode=0;
     //int16_t         sounddata[AUDIO_FFT_MULTI][AUDIO_FRAMES][2];
     sound_frame    *sounddata;
     uint16_t        fft_sequence = 0;  // variable to round robin through AUDIO_FFT_MULTI
@@ -204,7 +204,7 @@ void specgram_run(uint16_t x, uint16_t y)
         fb_clear(screen);
         for(counter = 0; counter < (x*y); counter++)
         {
-            screen->image[counter] = colourize_spec(((uint16_t*)spec_data)[counter]);
+            screen->image[counter] = colourize_spec(colour_mode, ((uint16_t*)spec_data)[counter]);
         }
         frame_drv_render(screen);
 
@@ -237,6 +237,13 @@ void specgram_run(uint16_t x, uint16_t y)
         button = in_get_bu();
         switch(button.button)
         {
+        case bu_b:
+            colour_mode ++;
+            if(colour_mode == 2)
+            {
+                colour_mode = 0;
+            }
+            break;
         case bu_start:
             goto exit;
         }
@@ -305,7 +312,7 @@ double window_scale(double *input, int32_t length, int32_t center, int32_t dista
     return result;
 }
 
-pixel_t colourize_spec(int16_t intensity)
+pixel_t colourize_spec(int16_t mode, int16_t intensity)
 {
     int32_t value;
     pixel_t colours;
@@ -316,59 +323,73 @@ pixel_t colourize_spec(int16_t intensity)
 
     value = intensity;
 
-    switch (2)
+    switch (mode)
     {
     case 0:
+        /*  |-------------------------|
+         *   P>---<B>---<G>---<Y>---<R
+         *
+         *   R^^\___________/^^^^^^^^^
+         *   G________/^^^^^^^^^^^\___
+         *   B^^^^^^^^\_______________
+         *
+         *   0    256  512    768    1024
+         *
+         * */
+        value >>= 3;  // 0 -> 1024
 
-        value >>= 7;  // 0 -> 512
+        if(value < 256)
+        {
+            red = 255 - value;
+        }
+        else if(value >= 512 && value < 768)
+        {
+            red = value - 512;
+        }
+        else if(value >= 768)
+        {
+            red = 255;
+        }
+        else
+        {
+            red = 0;
+        }
 
 
-        blue = value - 256 + 64;
-        if(blue > 255)
+        // Blue Start 256 end 0
+        if(value < 256)
         {
             blue = 255;
         }
-        else if(blue < 0)
+        else if(value < 512)
+        {
+            blue = 255 - (value - 256);
+        }
+        else
         {
             blue = 0;
         }
-        green = -(value - 255 - 64);
-        if(green > 255)
+
+        // Green
+        if(value >= 256 && value < 512)
+        {
+            green = value - 256;
+        }
+        else if(value >= 512 && value < 768)
         {
             green = 255;
         }
-        else if(green < 0)
+        else if(value >= 768 && value < 1024)
+        {
+            green = 255 - (value - 768);
+        }
+        else
         {
             green = 0;
         }
 
         break;
     case 1:
-
-        value >>= 7;  // 0 - 512
-
-
-        red = value - 256 + 64;
-        if(red > 255)
-        {
-            red = 255;
-        }
-        else if(red < 0)
-        {
-            red = 0;
-        }
-        blue = -(value - 255 - 64);
-        if(blue > 255)
-        {
-            blue = 255;
-        }
-        else if(blue < 0)
-        {
-            blue = 0;
-        }
-
-        break;
-    case 2:
         /*  |-------------------|
          *   B>-------<GG>----<R
          *
