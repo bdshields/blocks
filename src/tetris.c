@@ -90,6 +90,7 @@ void tetris_run(uint16_t x, uint16_t y)
     raster_t *sprite_block;
 
     uint16_t    block_index;
+    uint16_t    next_block;
     systime     gravity_update;
     uint16_t    gravity;
     pos_t       pos_block;
@@ -121,6 +122,15 @@ void tetris_run(uint16_t x, uint16_t y)
 
     game_area = fb_allocate(x, y);
     sprite_block = NULL;
+
+#if 1
+    next_block = rand() % 7;
+#elif 0
+    next_block = (block_index +1) %7;
+#else
+    next_block = 6;
+#endif
+
     while(1)
     {
         switch(game_state)
@@ -130,12 +140,13 @@ void tetris_run(uint16_t x, uint16_t y)
             score_set(0, 0);
 
         case ts_new_block:  // New block
+            block_index = next_block;
 #if 1
-            block_index = rand() % 7;
+            next_block = rand() % 7;
 #elif 0
-            block_index = (block_index +1) %7;
+            next_block = (block_index +1) %7;
 #else
-            block_index = 6;
+            next_block = 6;
 #endif
             sprite_block = fb_copy(block_list[block_index]);
             pos_block = (pos_t){pos_game.x/2, 0};
@@ -282,6 +293,8 @@ void tetris_run(uint16_t x, uint16_t y)
             int16_t local_y;
             // Update screen
             fb_clear(game_area);
+            paste_sprite(game_area, block_list[next_block],POS(3,3));
+
             paste_sprite(game_area, dropped_blocks,pos_game);
             if(sprite_block)
             {
