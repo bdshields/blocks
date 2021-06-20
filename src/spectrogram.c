@@ -30,11 +30,11 @@
 const raster_t specgram_logo = {
     .x_max = 5,
     .y_max = 5,
-    .image = {PX_CLEAR,PX_CLEAR,PX_CLEAR,PX_CLEAR,PX_CLEAR,
-              PX_CLEAR,PX_CLEAR,PX_CLEAR,PX_RED__,PX_CLEAR,
-              PX_CLEAR,PX_RED__,PX_CLEAR,PX_RED__,PX_CLEAR,
-              PX_RED__,PX_RED__,PX_RED__,PX_RED__,PX_RED__,
-              PX_RED__,PX_RED__,PX_RED__,PX_RED__,PX_RED__,
+    .image = {PX_CLEAR,PX_CLEAR,PX_CLEAR,PX_LITEBLUE,PX_RED__,
+              PX_CLEAR,PX_RED__,PX_RED__,PX_RED__,PX_RED__,
+              PX_CLEAR,PX_CLEAR,PX_LITEBLUE,PX_RED__,PX_RED__,
+              PX_CLEAR,PX_LITEBLUE,PX_RED__,PX_RED__,PX_RED__,
+              PX_CLEAR,PX_RED__,PX_RED__,PX_RED__,PX_RED__,
 
     }
 };
@@ -51,6 +51,8 @@ raster_t *specgram_option(void)
 #define AUDIO_SAMPLERATE (ALSA_SRATE)
 
 #define FREQ_STEP ((float)(AUDIO_SAMPLERATE/2.0)/((float)(AUDIO_FFT)))
+
+extern uint16_t spec_freqs [15];
 
 int32_t specgram_freqs [][2]=
 {
@@ -79,6 +81,8 @@ pixel_t spec_colours2[][3]={
 };
 
 double window_scale(double *input, int32_t length, int32_t center, int32_t distance);
+double mel_scale(double *input, int16_t length, int16_t center);
+
 void abs_array(double *data, int32_t length);
 pixel_t colourize_spec(int16_t mode,int16_t intensity);
 
@@ -118,7 +122,7 @@ void specgram_run(uint16_t x, uint16_t y)
     // Data types from the fastest fourier transform in the west
     double *in, *out;
     fftw_plan p;
-
+    memset(spec_data, 0, sizeof(spec_data));
     in = (double*) fftw_malloc(sizeof(double) * AUDIO_FFT);
     out = (double*) fftw_malloc(sizeof(double) * AUDIO_FFT);
 
@@ -169,7 +173,8 @@ void specgram_run(uint16_t x, uint16_t y)
 
             level = 0;
 
-            value = window_scale(out, AUDIO_FFT/2, specgram_freqs[counter][0]/FREQ_STEP, specgram_freqs[counter][1]/FREQ_STEP);
+            //value = window_scale(out, AUDIO_FFT/2, specgram_freqs[counter][0]/FREQ_STEP, specgram_freqs[counter][1]/FREQ_STEP);
+            value = mel_scale(out, AUDIO_FFT/2, spec_freqs[counter]/FREQ_STEP);
 
             // Log scale
             while(value > 1)
@@ -196,10 +201,6 @@ void specgram_run(uint16_t x, uint16_t y)
             spec_data[14 - counter][x-1] = (level - min_value)  * (8192 / (max_value - min_value));
 
         }
-        // Fix some dodg
-        //spec_data[0][spec_index] = spec_data[1][spec_index];
-        //spec_data[14][spec_index] = spec_data[13][spec_index];
-
 
         fb_clear(screen);
         for(counter = 0; counter < (x*y); counter++)
@@ -216,7 +217,7 @@ void specgram_run(uint16_t x, uint16_t y)
         }
         else
         {
-            max_value += ((float)frame_max - max_value) * 0.1;
+            max_value += ((float)frame_max - max_value) * 0.02;
         }
         if(min_value > frame_min)
         {
@@ -224,7 +225,7 @@ void specgram_run(uint16_t x, uint16_t y)
         }
         else
         {
-            min_value += ((float)frame_min - min_value) * 0.1;
+            min_value += ((float)frame_min - min_value) * 0.02;
         }
         if((max_value - min_value) < 10)
         {
