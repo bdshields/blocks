@@ -21,6 +21,8 @@
 #include "scoring.h"
 #include "http_session.h"
 
+#include "text.h"
+
 const raster_t *block_list[]={
         &tetris_1,
         &tetris_2,
@@ -83,236 +85,292 @@ pixel_t tetris_animate[] = {
 uint16_t tetris_check(raster_t *blocks, tetris_delete_t *details);
 pos_t getBlockPos(pos_t pos_block, raster_t *sprite);
 
+#define TETRIS_MAX_PLAYERS 2
+
 void tetris_run(uint16_t x, uint16_t y)
 {
     raster_t *game_area;
-    raster_t *dropped_blocks;
-    raster_t *sprite_block;
+    raster_t *dropped_blocks[TETRIS_MAX_PLAYERS]={0};
+    raster_t *sprite_block[TETRIS_MAX_PLAYERS]={0};
 
-    uint16_t    block_index;
-    uint16_t    next_block;
-    systime     gravity_update;
-    uint16_t    gravity;
-    pos_t       pos_block;
-    pos_t       pos_game;
+    uint16_t    block_index[TETRIS_MAX_PLAYERS];
+    uint16_t    next_block[TETRIS_MAX_PLAYERS];
+    systime     gravity_update[TETRIS_MAX_PLAYERS];
+    uint16_t    gravity[TETRIS_MAX_PLAYERS];
+    pos_t       pos_block[TETRIS_MAX_PLAYERS];
+    pos_t       pos_new_block[TETRIS_MAX_PLAYERS];
+    pos_t       pos_game[TETRIS_MAX_PLAYERS];
 
-    tetris_delete_t    remove_lines;
-    systime     animate_tmr;
-    uint16_t    animate_counter;
+    tetris_delete_t    remove_lines[TETRIS_MAX_PLAYERS];
+    systime     animate_tmr[TETRIS_MAX_PLAYERS];
+    uint16_t    animate_counter[TETRIS_MAX_PLAYERS];
     uint16_t    points;
-    uint16_t    touching;
+    uint16_t    touching[TETRIS_MAX_PLAYERS];
     user_input_t    button;
     uint16_t    update_scr=0;
 
-    uint16_t game_state = ts_init_game;
+    uint16_t     num_players=1;
+    uint16_t     player_idx=0;
 
-    if(http_session_setPlayers(1) == 1)
+    uint16_t game_state[TETRIS_MAX_PLAYERS] = {ts_init_game, ts_init_game};
+    uint16_t next_state[TETRIS_MAX_PLAYERS] = {ts_none, ts_none};
+
+    if(http_session_setPlayers(2) == 2)
     {
         http_session_setTeams(1);
-        score_init("Tetris", 1, http_session_getTeamName(1));
+        score_init("Tetris",2, http_session_getTeamName(1), http_session_getTeamName(2));
+        num_players = 2;
+    }
+    else if(http_session_setPlayers(1) == 1)
+    {
+        http_session_setTeams(1);
+        score_init("Tetris",1, http_session_getTeamName(1));
+        num_players = 1;
     }
     else
     {
         // Just playing at the terminal
         score_init("Tetris", 1, "Player 1");
+        num_players = 1;
     }
-
-    dropped_blocks = fb_allocate(TETRIS_GAME_WIDTH, y);
-    pos_game = (pos_t){x/2 - 5, 0};
-
     game_area = fb_allocate(x, y);
-    sprite_block = NULL;
+
+    for(player_idx = 0; player_idx<num_players; player_idx++)
+    {
+        dropped_blocks[player_idx] = fb_allocate(TETRIS_GAME_WIDTH, y);
+        sprite_block[player_idx] = NULL;
+        pos_game[player_idx] = (pos_t){x/2 - ((TETRIS_GAME_WIDTH / 2) * num_players) + (player_idx * (TETRIS_GAME_WIDTH + 1)), 0};
 
 #if 1
-    next_block = rand() % 7;
+        next_block[player_idx] = rand() % 7;
 #elif 0
-    next_block = (block_index +1) %7;
+        next_block[player_idx] = (block_index +1) %7;
 #else
-    next_block = 6;
+        next_block[player_idx] = 6;
 #endif
+
+    }
+    pos_new_block[0] = POS(0,4);
+    pos_new_block[1] = POS(x-2,4);
 
     while(1)
     {
-        switch(game_state)
+        for (player_idx = 0; player_idx< num_players; player_idx++)
         {
-        case ts_init_game:  // Init Game
-            fb_clear(dropped_blocks);
-            score_set(0, 0);
+            switch(game_state[player_idx])
+            {
+            case ts_init_game:  // Init Game
+                fb_clear(dropped_blocks[player_idx]);
+                score_set(player_idx, 0);
+                ;;
+            case ts_new_block:  // New block
+                block_index[player_idx] = next_block[player_idx];
+    #if 1
+                next_block[player_idx] = rand() % 7;
+    #elif 0
+                next_block[player_idx] = (block_index +1) %7;
+    #else
+                next_block[player_idx] = 6;
+    #endif
+                sprite_block[player_idx] = fb_copy(block_list[block_index[player_idx]]);
+                pos_block[player_idx] = (pos_t){(TETRIS_GAME_WIDTH/2) - 1, 0};
 
-        case ts_new_block:  // New block
-            block_index = next_block;
-#if 1
-            next_block = rand() % 7;
-#elif 0
-            next_block = (block_index +1) %7;
-#else
-            next_block = 6;
-#endif
-            sprite_block = fb_copy(block_list[block_index]);
-            pos_block = (pos_t){pos_game.x/2, 0};
+                touching[player_idx] = sprite_touching(dropped_blocks[player_idx], sprite_block[player_idx], getBlockPos(pos_block[player_idx],sprite_block[player_idx]));
 
-            touching = sprite_touching(dropped_blocks, sprite_block, getBlockPos(pos_block,sprite_block));
+                gravity[player_idx] = TETRIS_GRAVITY;
+                gravity_update[player_idx] = set_alarm(gravity[player_idx]);
 
-            gravity = TETRIS_GRAVITY;
-            gravity_update = set_alarm(gravity);
-
-            if(touching & down)
-            {
-                game_state = ts_game_over;
-            }
-            else
-            {
-                game_state = ts_none;
-            }
-            update_scr = 1;
-            break;
-        case ts_drop_block:
-            if(touching & down)
-            {
-                // Block has touched down
-                game_state = ts_attach_block;
-            }
-            else
-            {
-                pos_block.y ++;
-                game_state = ts_none;
-            }
-            update_scr = 1;
-            gravity_update = set_alarm(gravity);
-            break;
-        case ts_attach_block:
-            paste_sprite(dropped_blocks, sprite_block,getBlockPos(pos_block,sprite_block));
-            fb_destroy(sprite_block);
-            sprite_block = NULL;
-            points = tetris_check(dropped_blocks, &remove_lines);
-            if(points > 0)
-            {
-                score_adjust(0, points);
-            }
-            if(remove_lines.num_deleted)
-            {
-                gravity_update = cancel_alarm(NULL);
-                pos_block = (pos_t){pos_game.x/2 - 2, -10};
-                animate_tmr=set_alarm(100);
-                animate_counter = 0;
-                update_scr = 1;
-                game_state = ts_animate_rows;
-
-            }
-            else
-            {
-                gravity_update = set_alarm(gravity);
-                update_scr = 1;
-                game_state = ts_new_block;
-            }
-            break;
-        case ts_animate_rows:
-            if(alarm_expired(animate_tmr))
-            {
-                if(animate_counter < dropped_blocks->x_max)
+                if(touching[player_idx] & down)
                 {
-                    uint16_t y;
-                    for(y=0; y<remove_lines.num_deleted; y++)
-                    {
-                        *fb_get_pixel(dropped_blocks,animate_counter, remove_lines.rows[y]) = tetris_animate[remove_lines.num_deleted - 1];
-                    }
-                    animate_counter++;
-                    animate_tmr=set_alarm(50);
-                    update_scr = 1;
+                    game_state[player_idx] = ts_game_over;
                 }
                 else
                 {
-                    game_state = ts_remove_rows;
+                    game_state[player_idx] = ts_none;
                 }
-            }
-            break;
-        case ts_remove_rows:
-        {
-            uint16_t y;
-            for(y=0; y<remove_lines.num_deleted; y++)
-            {
-                memmove(dropped_blocks->image + dropped_blocks->x_max, dropped_blocks->image, remove_lines.rows[y] * dropped_blocks->x_max * sizeof(pixel_t));
-            }
-            update_scr = 1;
-            game_state = ts_new_block;
-        }
-            break;
-        case ts_game_over:
-            frame_sleep(1000);
-            gravity_update = set_alarm(TETRIS_GRAVITY);
-            game_state = ts_init_game;
-            break;
-        case ts_none:
-            button = in_get_bu();
-            if(button.user == 1)
-            {
-                switch(button.button)
+                update_scr = 1;
+                break;
+            case ts_drop_block:
+                if(touching[player_idx] & down)
                 {
-                case bu_left:
-                    if(!(touching & left))
-                    {
-                        pos_block.x --;
-                        update_scr = 1;
-                    }
-                    break;
-                case bu_right:
-                    if(!(touching & right))
-                    {
-                        pos_block.x ++;
-                        update_scr = 1;
-                    }
-                    break;
-                case bu_a:
-                case bu_up:
-                    if(sprite_can_rotate(dropped_blocks, sprite_block, pos_block, tr_rot_left))
-                    {
-                        sprite_transform(sprite_block,tr_rot_left);
-                        update_scr = 1;
-                    }
-                    break;
-                case bu_b:
-                    if(sprite_can_rotate(dropped_blocks, sprite_block, pos_block, tr_rot_right))
-                    {
-                        sprite_transform(sprite_block,tr_rot_right);
-                        update_scr = 1;
-                    }
-                    break;
-                case bu_down:
-                    game_state = ts_drop_block;
-                    break;
-                case bu_start:
-                    goto exit;
-                    break;
+                    // Block has touched down
+                    game_state[player_idx] = ts_attach_block;
                 }
+                else
+                {
+                    pos_block[player_idx].y ++;
+                    game_state[player_idx] = ts_none;
+                }
+                update_scr = 1;
+                gravity_update[player_idx] = set_alarm(gravity[player_idx]);
+                break;
+            case ts_attach_block:
+                paste_sprite(dropped_blocks[player_idx], sprite_block[player_idx],getBlockPos(pos_block[player_idx],sprite_block[player_idx]));
+                fb_destroy(sprite_block[player_idx]);
+                sprite_block[player_idx] = NULL;
+                points = tetris_check(dropped_blocks[player_idx], &remove_lines[player_idx]);
+                if(points > 0)
+                {
+                    score_adjust(player_idx, points);
+                }
+                if(remove_lines[player_idx].num_deleted)
+                {
+                    gravity_update[player_idx] = cancel_alarm(NULL);
+                    pos_block[player_idx] = (pos_t){-10, -10};
+                    animate_tmr[player_idx]=set_alarm(100);
+                    animate_counter[player_idx] = 0;
+                    update_scr = 1;
+                    game_state[player_idx] = ts_animate_rows;
 
+                }
+                else
+                {
+                    gravity_update[player_idx] = set_alarm(gravity);
+                    update_scr = 1;
+                    game_state[player_idx] = ts_new_block;
+                }
+                break;
+            case ts_animate_rows:
+                if(alarm_expired(animate_tmr[player_idx]))
+                {
+                    if(animate_counter[player_idx] < dropped_blocks[player_idx]->x_max)
+                    {
+                        uint16_t y;
+                        for(y=0; y<remove_lines[player_idx].num_deleted; y++)
+                        {
+                            *fb_get_pixel(dropped_blocks[player_idx],animate_counter[player_idx], remove_lines[player_idx].rows[y]) = tetris_animate[remove_lines[player_idx].num_deleted - 1];
+                        }
+                        animate_counter[player_idx]++;
+                        animate_tmr[player_idx]=set_alarm(50);
+                        update_scr = 1;
+                    }
+                    else
+                    {
+                        game_state[player_idx] = ts_remove_rows;
+                    }
+                }
+                break;
+            case ts_remove_rows:
+            {
+                uint16_t y;
+                for(y=0; y<remove_lines[player_idx].num_deleted; y++)
+                {
+                    memmove(dropped_blocks[player_idx]->image + dropped_blocks[player_idx]->x_max, dropped_blocks[player_idx]->image, remove_lines[player_idx].rows[y] * dropped_blocks[player_idx]->x_max * sizeof(pixel_t));
+                }
+                update_scr = 1;
+                game_state[player_idx] = ts_new_block;
             }
-            break;
+                break;
+            case ts_game_over:
+                if(num_players == 2)
+                {
+                    uint16_t local_x;
+                    uint16_t local_y;
+                    for(local_x=0; local_x<TETRIS_GAME_WIDTH; local_x++)
+                    {
+                        for(local_y=0; local_y<y; local_y++)
+                        {
+                            *fb_get_pixel(game_area, pos_game[player_idx^1].x+local_x,pos_game[player_idx^1].y+local_y) = PX_CLEAR;
+                        }
+                    }
+                    text_print(game_area,pos_add(pos_game[player_idx^1],POS(0,-2)),PX_PURPL,"W");
+                    text_print(game_area,pos_add(pos_game[player_idx^1],POS(3,3)),PX_PURPL,"i");
+                    text_print(game_area,pos_add(pos_game[player_idx^1],POS(6,8)),PX_PURPL,"n");
+                    frame_drv_render(game_area);
+                }
+                frame_sleep(3000);
+                gravity_update[0] = set_alarm(TETRIS_GRAVITY);
+                gravity_update[1] = set_alarm(TETRIS_GRAVITY);
+                game_state[0] = ts_init_game;
+                game_state[1] = ts_init_game;
+                next_state[0] = ts_none;
+                next_state[1] = ts_none;
+                break;
+            case ts_none:
+                game_state[player_idx] = next_state[player_idx];
+                next_state[player_idx] = ts_none;
+                break;
+            }
+
         }
+
+        button = in_get_bu();
+        if((button.user >= 1) && (button.user <= num_players))
+        {
+            player_idx = button.user - 1;
+            switch(button.button)
+            {
+            case bu_left:
+                if(!(touching[player_idx] & left))
+                {
+                    pos_block[player_idx].x --;
+                    update_scr = 1;
+                }
+                break;
+            case bu_right:
+                if(!(touching[player_idx] & right))
+                {
+                    pos_block[player_idx].x ++;
+                    update_scr = 1;
+                }
+                break;
+            case bu_a:
+            case bu_up:
+                if(sprite_can_rotate(dropped_blocks[player_idx], sprite_block[player_idx], pos_block[player_idx], tr_rot_left))
+                {
+                    sprite_transform(sprite_block[player_idx],tr_rot_left);
+                    update_scr = 1;
+                }
+                break;
+            case bu_b:
+                if(sprite_can_rotate(dropped_blocks[player_idx], sprite_block[player_idx], pos_block[player_idx], tr_rot_right))
+                {
+                    sprite_transform(sprite_block[player_idx],tr_rot_right);
+                    update_scr = 1;
+                }
+                break;
+            case bu_down:
+                next_state[player_idx] = ts_drop_block;
+                break;
+            case bu_start:
+                goto exit;
+                break;
+            }
+
+        }
+        else if (button.button == bu_start)
+        {
+            goto exit;
+        }
+
+
+
         if(update_scr)
         {
             int16_t local_y;
             // Update screen
             fb_clear(game_area);
-            paste_sprite(game_area, block_list[next_block],POS(3,3));
-
-            paste_sprite(game_area, dropped_blocks,pos_game);
-            if(sprite_block)
+            for(player_idx = 0; player_idx < num_players; player_idx++)
             {
-                paste_sprite(game_area, sprite_block,pos_add(pos_game,getBlockPos(pos_block, sprite_block)));
-                //paste_sprite(game_area, &game_border,pos_add(pos_game,pos_block));
-            }
+                paste_sprite(game_area, block_list[next_block[player_idx]],pos_new_block[player_idx]);
 
-            // Add border
-            for(local_y=0; local_y<game_area->y_max; local_y++)
-            {
-                paste_sprite(game_area, &game_border,(pos_t){pos_game.x -1, local_y});
-            }
-            // Add border
-            for(local_y=0; local_y<game_area->y_max; local_y++)
-            {
-                paste_sprite(game_area, &game_border,(pos_t){pos_game.x + TETRIS_GAME_WIDTH, local_y});
-            }
+                paste_sprite(game_area, dropped_blocks[player_idx],pos_game[player_idx]);
+                if(sprite_block[player_idx])
+                {
+                    paste_sprite(game_area, sprite_block[player_idx],pos_add(pos_game[player_idx],getBlockPos(pos_block[player_idx], sprite_block[player_idx])));
+                }
 
+                // Add border
+                for(local_y=0; local_y<game_area->y_max; local_y++)
+                {
+                    paste_sprite(game_area, &game_border,(pos_t){pos_game[player_idx].x -1, local_y});
+                }
+                // Add border
+                for(local_y=0; local_y<game_area->y_max; local_y++)
+                {
+                    paste_sprite(game_area, &game_border,(pos_t){pos_game[player_idx].x + TETRIS_GAME_WIDTH, local_y});
+                }
+            }
             frame_drv_render(game_area);
             update_scr = 0;
         }
@@ -321,25 +379,30 @@ void tetris_run(uint16_t x, uint16_t y)
             frame_sleep(50);
         }
 
-        if(sprite_block && (pos_block.y >= 0))
+        for(player_idx =0; player_idx<num_players; player_idx++)
         {
-            touching = sprite_touching(dropped_blocks, sprite_block, getBlockPos(pos_block, sprite_block));
+            if(sprite_block[player_idx] && (pos_block[player_idx].y >= 0))
+            {
+                touching[player_idx] = sprite_touching(dropped_blocks[player_idx], sprite_block[player_idx], getBlockPos(pos_block[player_idx], sprite_block[player_idx]));
+            }
+
+            if(alarm_expired(gravity_update[player_idx]))
+            {
+                next_state[player_idx] = ts_drop_block;
+                cancel_alarm(&gravity_update[player_idx]);
+            }
         }
-
-
-
-        if(alarm_expired(gravity_update))
-        {
-            game_state = ts_drop_block;
-        }
-
     }
 
 exit:
     score_save();
     fb_destroy(game_area);
-    fb_destroy(dropped_blocks);
-    fb_destroy(sprite_block);
+    for(player_idx=0; player_idx<TETRIS_MAX_PLAYERS; player_idx++)
+    {
+        fb_destroy(dropped_blocks[player_idx]);
+        fb_destroy(sprite_block[player_idx]);
+    }
+
 }
 
 const uint16_t points[]={0, 10,20,50,100};
