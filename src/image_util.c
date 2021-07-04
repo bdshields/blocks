@@ -341,3 +341,28 @@ origin_t origin_transform(raster_t *sprite, transform_t rotate)
     return new_origin;
 }
 
+/**
+ * blend two pixels
+ * brightness is percentage for proportional blend, Max 1.0
+ */
+pixel_t pixel_blend(pixel_t first, float first_brightness, pixel_t second, float second_brightness)
+{
+    pixel_t result;
+
+    // Normalise brightness
+    float total_brightness;
+    total_brightness = first_brightness + second_brightness;
+    if(total_brightness > 1.0)
+    {
+        first_brightness /= total_brightness;
+        second_brightness /= total_brightness;
+    }
+
+    result.flags = first.flags | second.flags;
+
+    result.blue = (uint8_t)(((float)first.blue*first_brightness) + ((float)second.blue * second_brightness));
+    result.red = (uint8_t)(((float)first.red*first_brightness) + ((float)second.red * second_brightness));
+    result.green = (uint8_t)(((float)first.green*first_brightness) + ((float)second.green * second_brightness));
+
+    return result;
+}

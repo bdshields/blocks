@@ -29,5 +29,6 @@ uint16_t sprite_touching(raster_t *raster, raster_t *sprite, pos_t pos);
 uint16_t sprite_transform(raster_t *sprite, transform_t rotate);
 uint16_t sprite_can_rotate(raster_t *raster, raster_t *sprite, pos_t origin, transform_t rotate);
 uint16_t pos_out_raster(raster_t *raster, pos_t pos);
+pixel_t pixel_blend(pixel_t first, float first_brightness, pixel_t second, float second_brightness);
 
 #endif /* SRC_IMAGE_UTIL_H_ */
