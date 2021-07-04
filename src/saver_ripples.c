@@ -50,7 +50,7 @@ raster_t *ripples_option(void)
 #define VISCOSITY (0.99)  // Max of 1.0
 
 
-#define DROPLET_DURATION 3
+#define DROPLET_DURATION 3    // Essentially the wavelength
 #define RIPPLE_FPS 30
 
 pixel_t colourize(colour_method_t method, int16_t intensity);
@@ -67,9 +67,11 @@ void ripples_run(uint16_t x, uint16_t y)
     uint16_t    index_y;
     pos_t       droplet_pos;
     uint16_t    droplet_timer;
+    int16_t    decimator=0;
+    int16_t    decimator_cnt;
 
     colour_method_t method = green_blue;
-    float           viscosity = 1;
+    float           viscosity = 0.99;
 
     int32_t total;
     // allocate frame buffer
@@ -98,80 +100,82 @@ void ripples_run(uint16_t x, uint16_t y)
         if(alarm_expired(update_tmr))
         {
             update_tmr = set_alarm(1000/RIPPLE_FPS);
-            // Update droplet
-            if(droplet_timer > 0)
-            {
-                value[V(-2)][droplet_pos.y*x + droplet_pos.x]=-30000;
-                droplet_timer--;
-            }
 
-            // Update propagation
-            for(index_y=0; index_y<y; index_y++)
+            decimator_cnt =0;
+            do
             {
-                for(index_x=0; index_x<x; index_x++)
+                value_index++;
+
+                // Update droplet
+                if(droplet_timer > 0)
                 {
-                    int16_t neighbours = 4;
-                    int16_t left, right, up, down, center[3];
-                    float decay = 1;
-
-
-                    center[0] = value[V(-3)][index_y*x + index_x];
-                    center[1] = value[V(-2)][index_y*x + index_x];
-                    center[2] = value[V(-1)][index_y*x + index_x];
-                    if(index_x>0)
-                    {
-                        left = value[V(-1)][index_y*x + index_x - 1];
-                    }
-                    else
-                    {
-                        left = 0;
-                        neighbours --;
-                        decay = DECAY;
-                    }
-                    if(index_x<(x-1))
-                    {
-                        right = value[V(-1)][index_y*x + index_x + 1];
-                    }
-                    else
-                    {
-                        right = 0;
-                        neighbours --;
-                        decay = DECAY;
-                    }
-                    if(index_y>0)
-                    {
-                        up = value[V(-1)][(index_y-1)*x + index_x];
-                    }
-                    else
-                    {
-                        up =0;
-                        neighbours --;
-                        decay = DECAY;
-                    }
-                    if(index_y<(y-1))
-                    {
-                        down = value[V(-1)][(index_y+1)*x + index_x];
-                    }
-                    else
-                    {
-                        down = 0;
-                        neighbours --;
-                        decay = DECAY;
-                    }
-
-                    total = decay * ((((1.0+viscosity)/4.0)*(left + right + up + down)) - (viscosity * value[V(-2)][index_y*x+ index_x]));
-
-                    if(total > 30000)
-                    {
-                        total = 30000;
-                    }
-                    else if(total < -30000)
-                    {
-                        total = -30000;
-                    }
-                    value[V(0)][index_y*x + index_x] = total;
+                    value[V(-2)][droplet_pos.y*x + droplet_pos.x]=-30000;
+                    droplet_timer--;
                 }
-            }
+                // Update propagation
+                for(index_y=0; index_y<y; index_y++)
+                {
+                    for(index_x=0; index_x<x; index_x++)
+                    {
+                        int16_t neighbours = 4;
+                        int16_t left, right, up, down;
+                        float decay = 1;
+
+                        if(index_x>0)
+                        {
+                            left = value[V(-1)][index_y*x + index_x - 1];
+                        }
+                        else
+                        {
+                            left = 0;
+                            neighbours --;
+                            decay = DECAY;
+                        }
+                        if(index_x<(x-1))
+                        {
+                            right = value[V(-1)][index_y*x + index_x + 1];
+                        }
+                        else
+                        {
+                            right = 0;
+                            neighbours --;
+                            decay = DECAY;
+                        }
+                        if(index_y>0)
+                        {
+                            up = value[V(-1)][(index_y-1)*x + index_x];
+                        }
+                        else
+                        {
+                            up =0;
+                            neighbours --;
+                            decay = DECAY;
+                        }
+                        if(index_y<(y-1))
+                        {
+                            down = value[V(-1)][(index_y+1)*x + index_x];
+                        }
+                        else
+                        {
+                            down = 0;
+                            neighbours --;
+                            decay = DECAY;
+                        }
+
+                        total = decay * ((((1.0+viscosity)/4.0)*(left + right + up + down)) - (viscosity * value[V(-2)][index_y*x+ index_x]));
+
+                        if(total > 30000)
+                        {
+                            total = 30000;
+                        }
+                        else if(total < -30000)
+                        {
+                            total = -30000;
+                        }
+                        value[V(0)][index_y*x + index_x] = total;
+                    }
+                }
+            }while(++decimator_cnt < decimator);
             fb_clear(screen_area);
             for(index_y = 0; index_y < (x*y); index_y++)
             {
@@ -184,7 +188,6 @@ void ripples_run(uint16_t x, uint16_t y)
             }
 
             frame_drv_render(screen_area);
-            value_index++;
 
         }
         else
@@ -208,8 +211,24 @@ void ripples_run(uint16_t x, uint16_t y)
             }
             break;
         case bu_left:
+            if(decimator > 0)
+            {
+                decimator-=1;
+            }
+            else
+            {
+                decimator = 0;
+            }
             break;
         case bu_right:
+            if(decimator < 4)
+            {
+                decimator+=1;
+            }
+            else
+            {
+                decimator = 4;
+            }
             break;
         case bu_a:
             droplet_pos = (pos_t){rand()%x, rand()%y};
