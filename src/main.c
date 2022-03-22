@@ -39,6 +39,7 @@
 #include "spectrogram.h"
 #include "conways.h"
 #include "clock.h"
+#include "shooter.h"
 
 
 struct _game{
@@ -67,6 +68,11 @@ const struct _game games[]=
     {
         .run = paint_run,
         .option = paint_option,
+        .min_players = 1,
+    },
+    {
+        .run = shooter_run,
+        .option = shooter_option,
         .min_players = 1,
     },
     {
@@ -101,7 +107,7 @@ const struct _game games[]=
     }
 };
 
-#define NUM_GAMES 10
+#define NUM_GAMES 11
 
 #define SCR_WIDTH 30
 #define SCR_HEIGHT 15
@@ -122,9 +128,6 @@ int main(int argc, char *argv[])
     int16_t     counter;
     int16_t     selected;
     raster_t    *raster = NULL;
-    raster_t    *options = NULL;
-    raster_t    *selector;
-    pos_t        pos_menu;
     pos_t        pos_selector;
 
     user_input_t    button;
@@ -172,8 +175,6 @@ int main(int argc, char *argv[])
      * allocate our main raster object
      */
     raster = fb_allocate(SCR_WIDTH, SCR_HEIGHT);
-    options = fb_allocate(NUM_GAMES * 6, 5);
-    selector = fb_allocate(NUM_GAMES * 6, 1);
 
 
 
@@ -194,19 +195,11 @@ int main(int argc, char *argv[])
         case 0:
             // draw menu
 
-            fb_clear(options);
-            pos_selector = (pos_t){0,0};
-            for(counter = 0; counter<NUM_GAMES; counter ++)
-            {
-                paste_sprite(options, games[counter].option(), pos_selector);
-                pos_selector.x += 6;
-            }
             menu_state = 1;
+            ;
         case 1:
             // update selector
             screenSaverTimeout = set_alarm(SCREEN_SAVER_TIME * 60 * 1000);
-            fb_clear(selector);
-            paste_sprite(selector, &cursor, (pos_t){2+selected * 6, 0});
             update_scr = 1;
             menu_state = 2;
             break;
@@ -262,10 +255,25 @@ int main(int argc, char *argv[])
         if(update_scr)
         {
             fb_clear(raster);
-            paste_sprite(raster, options, (pos_t){0,2});
-            paste_sprite(raster, selector, (pos_t){0,0});
-            paste_sprite(raster, options, (pos_t){-30,10});
-            paste_sprite(raster, selector, (pos_t){-30,8});
+            if(selected > 1)
+            {
+                paste_sprite(raster, games[selected -2].option(), (pos_t){-2,4});
+            }
+            if(selected > 0)
+            {
+                paste_sprite(raster, games[selected -1].option(), (pos_t){4,4});
+            }
+            paste_sprite(raster, &cursor, (pos_t){15,2});
+            paste_sprite(raster, games[selected].option(), (pos_t){13,4});
+            if(selected < (NUM_GAMES - 1))
+            {
+                paste_sprite(raster, games[selected +1].option(), (pos_t){22,4});
+            }
+            if(selected < (NUM_GAMES - 2))
+            {
+                paste_sprite(raster, games[selected +2].option(), (pos_t){28,4});
+            }
+
             frame_drv_render(raster);
             update_scr = 0;
         }
