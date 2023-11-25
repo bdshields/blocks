@@ -58,9 +58,15 @@ ws2811_t ws2811_strip =
 drv_type frame_drv_type = dr_none;
 disp_state frame_drv_state = ds_none;
 
+#define PIX_MAP_FILE "pix_map.conf"
+#define PIX_MAP_MAX 8
+uint16_t pix_map_count=0;
+uint16_t pix_map[PIX_MAP_MAX][2];  // y,y pairs
+
 int frame_drv_init(int x, int y, drv_type type)
 {
     int result=0;
+    FILE *map_f;
     switch(type)
     {
     case dr_term:
@@ -92,6 +98,38 @@ int frame_drv_init(int x, int y, drv_type type)
 #endif
     }
 
+    // Load list of broken pixels
+    pix_map_count=0;
+    map_f = fopen(PIX_MAP_FILE, "r");
+    if(map_f != NULL)
+    {
+        char buffer[1024];
+        size_t  buffer_length;
+        char *start;
+        char *line_end;
+        char *end;
+        buffer_length = fread(buffer,1,1024, map_f);
+        // parse buffer looking for pairs
+        start = buffer;
+        end = buffer+buffer_length;
+        *end = 0;
+        while((start < end) && (pix_map_count<PIX_MAP_MAX))
+        {
+            line_end = strchrnul(start,'\n');
+            if(line_end > end)
+            {
+                break;
+            }
+            if(sscanf(start, "%d,%d", pix_map[pix_map_count], pix_map[pix_map_count] + 1) != 2)
+            {
+                break;
+            }
+            pix_map_count++;
+            start = line_end+1;
+        }
+        fclose(map_f);
+    }
+
     return result;
 }
 
@@ -99,8 +137,15 @@ int frame_drv_init(int x, int y, drv_type type)
 int frame_drv_render(raster_t * raster)
 {
     pixel_t    *cur_pixel;
+    int counter;
 
     frame_drv_wake();
+
+    // Apply broken pixel map
+    for (counter=0; counter<pix_map_count; counter++)
+    {
+        memset(fb_get_pixel(raster, pix_map[counter][0], pix_map[counter][1]), 0, sizeof(pixel_t));
+    }
 
     switch(frame_drv_type)
     {
